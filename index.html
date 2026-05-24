@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b2d4d" />
+    <title>Missão 5S: Caça às Anomalias</title>
+    <link rel="stylesheet" href="style.css" />
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"
+    ></script>
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button
+          class="brand-button"
+          type="button"
+          data-nav="home"
+          aria-label="Ir para o início"
+        >
+          <span class="brand-mark">5S</span>
+          <span>
+            <strong>Missão 5S</strong>
+            <small>Caça às Anomalias</small>
+          </span>
+        </button>
+
+        <div class="topbar-actions">
+          <button class="ghost-button compact" type="button" data-nav="ranking">
+            🏆 Ranking
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section id="screen-home" class="screen active">
+          <div class="layout-two">
+            <article class="intro-panel">
+              <span class="eyebrow">Funilaria • SIS • 5S</span>
+              <h1>Missão 5S:<br />Caça às Anomalias</h1>
+              <p>
+                Observe, escolha o senso correto e acumule pontos no ranking!
+              </p>
+              <div class="industrial-strip" aria-hidden="true"></div>
+            </article>
+
+            <section
+              class="card form-card"
+              aria-labelledby="registration-title"
+            >
+              <h2 id="registration-title">Identificação do participante</h2>
+              <p class="muted">Preencha seus dados para iniciar a missão.</p>
+
+              <form id="player-form" novalidate>
+                <label for="player-name">Nome completo</label>
+                <input
+                  id="player-name"
+                  name="playerName"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Ex.: Maria Silva"
+                  required
+                />
+                <p class="field-error" id="name-error" aria-live="polite"></p>
+
+                <label for="player-shift">Turno</label>
+                <select id="player-shift" name="playerShift" required>
+                  <option value="">Selecione</option>
+                  <option value="1º Turno">1º Turno</option>
+                  <option value="2º Turno">2º Turno</option>
+                  <option value="3º Turno">3º Turno</option>
+                </select>
+                <p class="field-error" id="shift-error" aria-live="polite"></p>
+
+                <label for="player-id">Matrícula</label>
+                <input
+                  id="player-id"
+                  name="playerId"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="Ex.: 104363"
+                  required
+                />
+                <p class="field-error" id="id-error" aria-live="polite"></p>
+
+                <p
+                  class="form-message"
+                  id="form-message"
+                  aria-live="polite"
+                ></p>
+                <button class="primary-button full" type="submit">
+                  Iniciar Missão 5S
+                </button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section id="screen-instructions" class="screen">
+          <section class="card wide-card">
+            <span class="eyebrow">Preparação</span>
+            <h2>Como funciona</h2>
+            <p class="lead">
+              Observe cada situação da Funilaria e escolha qual senso do 5S está
+              relacionado. Cada resposta correta soma pontos. Você pode jogar
+              quantas vezes quiser: quanto mais participar, mais pontos acumula
+              no ranking.
+            </p>
+
+            <div class="sense-grid" id="sense-list"></div>
+
+            <div class="rules-grid">
+              <div><strong>+10</strong><span>Resposta correta</span></div>
+              <div><strong>+5</strong><span>Bônus até 5 segundos</span></div>
+              <div><strong>0</strong><span>Resposta errada</span></div>
+              <div><strong>0</strong><span>Tempo esgotado</span></div>
+            </div>
+
+            <p class="callout">
+              Quanto mais você joga, mais aprende e mais pontos acumula no
+              ranking.
+            </p>
+            <div class="button-row">
+              <button class="secondary-button" type="button" data-nav="home">
+                Voltar
+              </button>
+              <button
+                class="primary-button"
+                type="button"
+                id="start-game-button"
+              >
+                Começar Desafio
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <section id="screen-game" class="screen">
+          <section class="game-board">
+            <div class="game-topline">
+              <div>
+                <span class="eyebrow" id="round-label">Rodada 1 de 10</span>
+                <h2>Identifique o senso correto</h2>
+              </div>
+              <div class="score-chip">
+                <span>Pontos</span>
+                <strong id="current-score">0</strong>
+              </div>
+            </div>
+
+            <div class="progress-track" aria-label="Progresso da partida">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+
+            <div class="question-area">
+              <div class="timer-card" aria-live="polite">
+                <span>Tempo</span>
+                <strong id="timer-display">15</strong>
+              </div>
+              <p id="situation-text" class="situation-text"></p>
+            </div>
+
+            <div class="answers-grid" id="answers-grid"></div>
+
+            <div class="feedback-panel" id="feedback-panel" aria-live="polite">
+              <strong id="feedback-title"></strong>
+              <span id="feedback-detail"></span>
+              <p id="feedback-explanation"></p>
+            </div>
+          </section>
+        </section>
+
+        <section id="screen-result" class="screen">
+          <section class="card wide-card result-card">
+            <span class="eyebrow">Missão concluída</span>
+            <h2>Resultado da partida</h2>
+            <p id="result-message" class="lead"></p>
+
+            <div class="result-grid">
+              <div><span>Nome</span><strong id="result-name">-</strong></div>
+              <div><span>Matrícula</span><strong id="result-id">-</strong></div>
+              <div><span>Turno</span><strong id="result-shift">-</strong></div>
+              <div>
+                <span>Pontos da partida</span
+                ><strong id="result-score">0</strong>
+              </div>
+              <div>
+                <span>Pontos acumulados</span
+                ><strong id="result-total">0</strong>
+              </div>
+              <div>
+                <span>Partidas jogadas</span
+                ><strong id="result-games">0</strong>
+              </div>
+              <div>
+                <span>Melhor partida</span><strong id="result-best">0</strong>
+              </div>
+              <div>
+                <span>Posição atual</span
+                ><strong id="result-position">-</strong>
+              </div>
+            </div>
+
+            <p class="status-message" id="save-status" aria-live="polite"></p>
+
+            <div class="button-row">
+              <button
+                class="primary-button"
+                type="button"
+                id="play-again-button"
+              >
+                Jogar novamente
+              </button>
+              <button class="secondary-button" type="button" data-nav="ranking">
+                Ver ranking
+              </button>
+              <button class="ghost-button" type="button" id="new-player-button">
+                Novo participante
+              </button>
+            </div>
+          </section>
+        </section>
+
+        <section id="screen-ranking" class="screen">
+          <section class="ranking-shell">
+            <div class="section-heading">
+              <span class="eyebrow">Ranking online</span>
+              <h2>🏆 Top 3 — Missão 5S</h2>
+              <p id="firebase-notice" class="status-message"></p>
+            </div>
+
+            <div class="top3-grid" id="top3-grid"></div>
+
+            <section class="card wide-card ranking-card">
+              <div class="ranking-header">
+                <div>
+                  <h3>Ranking completo</h3>
+                  <p class="muted">
+                    <span id="total-participants">0</span> participantes •
+                    <span id="total-games">0</span> partidas
+                  </p>
+                </div>
+                <div class="ranking-filters">
+                  <input
+                    id="ranking-search"
+                    type="search"
+                    placeholder="Buscar nome ou matrícula"
+                  />
+                  <select
+                    id="ranking-shift-filter"
+                    aria-label="Filtrar por turno"
+                  >
+                    <option value="">Todos os turnos</option>
+                    <option value="1º Turno">1º Turno</option>
+                    <option value="2º Turno">2º Turno</option>
+                    <option value="3º Turno">3º Turno</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Posição</th>
+                      <th>Nome</th>
+                      <th>Matrícula</th>
+                      <th>Turno</th>
+                      <th>Pontos acumulados</th>
+                      <th>Partidas</th>
+                      <th>Melhor partida</th>
+                      <th>Última participação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ranking-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <div class="button-row">
+              <button class="secondary-button" type="button" data-nav="home">
+                Início
+              </button>
+            </div>
+          </section>
+        </section>
+
+      </main>
+
+      <aside class="audio-control" aria-label="Controle de áudio">
+        <button class="ghost-button compact" type="button" id="sound-toggle">
+          Som: Ligado
+        </button>
+        <label for="volume-control">Volume</label>
+        <input id="volume-control" type="range" min="0" max="100" value="70" />
+      </aside>
+    </div>
+  </body>
+</html>

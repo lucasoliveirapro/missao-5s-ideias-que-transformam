@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b2d4d" />
+    <title>Administração — Missão 5S</title>
+    <link rel="stylesheet" href="style.css" />
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"
+    ></script>
+    <script defer src="admin.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-button" aria-label="Painel administrativo">
+          <span class="brand-mark">5S</span>
+          <span>
+            <strong>Administração</strong>
+            <small>Missão 5S</small>
+          </span>
+        </div>
+      </header>
+
+      <main>
+        <section id="admin-login" class="card wide-card admin-card">
+          <span class="eyebrow">Acesso restrito</span>
+          <h1>Painel administrativo</h1>
+          <p class="muted">
+            Informe a senha temporária para visualizar os resultados e ações do
+            evento.
+          </p>
+
+          <form id="admin-login-form" novalidate>
+            <label for="admin-password">Senha</label>
+            <input
+              id="admin-password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <p
+              class="status-message"
+              id="admin-login-status"
+              aria-live="polite"
+            ></p>
+            <button class="primary-button" type="submit">Entrar</button>
+          </form>
+        </section>
+
+        <section id="admin-panel" class="ranking-shell" hidden>
+          <div class="section-heading">
+            <span class="eyebrow">Painel online</span>
+            <h2>🏆 Top 3 — Missão 5S</h2>
+            <p id="admin-firebase-notice" class="status-message"></p>
+          </div>
+
+          <div class="top3-grid" id="admin-top3-grid"></div>
+
+          <section class="card wide-card ranking-card">
+            <div class="ranking-header">
+              <div>
+                <h3>Ranking completo</h3>
+                <p class="muted">
+                  <span id="admin-total-participants">0</span> participantes •
+                  <span id="admin-total-games">0</span> partidas
+                </p>
+              </div>
+              <div class="ranking-filters">
+                <input
+                  id="admin-ranking-search"
+                  type="search"
+                  placeholder="Buscar nome ou matrícula"
+                />
+                <select
+                  id="admin-ranking-shift-filter"
+                  aria-label="Filtrar por turno"
+                >
+                  <option value="">Todos os turnos</option>
+                  <option value="1º Turno">1º Turno</option>
+                  <option value="2º Turno">2º Turno</option>
+                  <option value="3º Turno">3º Turno</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Posição</th>
+                    <th>Nome</th>
+                    <th>Matrícula</th>
+                    <th>Turno</th>
+                    <th>Pontos acumulados</th>
+                    <th>Partidas</th>
+                    <th>Melhor partida</th>
+                    <th>Última participação</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-ranking-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card wide-card admin-card">
+            <span class="eyebrow">Ações administrativas</span>
+            <h2>Resultados do evento</h2>
+            <p class="muted">
+              Exporte o histórico completo ou limpe os dados ao final da
+              campanha.
+            </p>
+
+            <div class="admin-actions">
+              <button
+                class="secondary-button"
+                type="button"
+                id="admin-export-csv-button"
+              >
+                Exportar CSV
+              </button>
+              <button
+                class="danger-button"
+                type="button"
+                id="admin-clear-data-button"
+              >
+                Limpar dados
+              </button>
+            </div>
+
+            <p
+              class="status-message"
+              id="admin-action-status"
+              aria-live="polite"
+            ></p>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
