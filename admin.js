@@ -14,7 +14,7 @@ const firebaseConfig = {
   appId: "",
 };
 
-const ADMIN_PASSWORD = "5S2026";
+const ADMIN_PASSWORD = "#Santos102628";
 
 let database = null;
 let firebaseReady = false;
@@ -23,10 +23,10 @@ let ranking = [];
 function hasFirebaseConfig() {
   return Boolean(
     firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.databaseURL &&
-      firebaseConfig.projectId &&
-      firebaseConfig.appId,
+    firebaseConfig.authDomain &&
+    firebaseConfig.databaseURL &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId,
   );
 }
 
@@ -86,7 +86,7 @@ function listenRanking() {
     "value",
     (snapshot) => {
       const data = snapshot.val() || {};
-      ranking = sortRanking(Object.values(data));
+      ranking = sortRanking(participantsFromRecord(data));
       renderRanking();
     },
     (error) => {
@@ -106,25 +106,112 @@ function setNotice(message) {
 // Ranking
 // ==================================================
 function sortRanking(participants) {
-  return participants
-    .filter(Boolean)
-    .sort((a, b) => {
-      const totalDiff = Number(b.totalPontos || 0) - Number(a.totalPontos || 0);
-      if (totalDiff) return totalDiff;
-      const gamesDiff = Number(b.partidas || 0) - Number(a.partidas || 0);
-      if (gamesDiff) return gamesDiff;
-      const bestDiff =
-        Number(b.melhorPartida || 0) - Number(a.melhorPartida || 0);
-      if (bestDiff) return bestDiff;
-      return (
-        new Date(
-          a.atingiuPontuacaoAtualEm || a.ultimaParticipacao || a.criadoEm || 0,
-        ) -
-        new Date(
-          b.atingiuPontuacaoAtualEm || b.ultimaParticipacao || b.criadoEm || 0,
-        )
-      );
+  return mergeParticipantsByRegistration(participants).sort((a, b) => {
+    const totalDiff = Number(b.totalPontos || 0) - Number(a.totalPontos || 0);
+    if (totalDiff) return totalDiff;
+    const gamesDiff = Number(b.partidas || 0) - Number(a.partidas || 0);
+    if (gamesDiff) return gamesDiff;
+    const bestDiff =
+      Number(b.melhorPartida || 0) - Number(a.melhorPartida || 0);
+    if (bestDiff) return bestDiff;
+    return (
+      new Date(
+        a.atingiuPontuacaoAtualEm || a.ultimaParticipacao || a.criadoEm || 0,
+      ) -
+      new Date(
+        b.atingiuPontuacaoAtualEm || b.ultimaParticipacao || b.criadoEm || 0,
+      )
+    );
+  });
+}
+
+function participantsFromRecord(record) {
+  return Object.entries(record || {}).map(([key, value]) => ({
+    ...(value || {}),
+    matricula: normalizeRegistration(value?.matricula || key),
+  }));
+}
+
+function mergeParticipantsByRegistration(participants) {
+  const grouped = new Map();
+
+  participants.filter(Boolean).forEach((participant) => {
+    const matricula = normalizeRegistration(participant.matricula);
+    if (!isValidRegistration(matricula)) return;
+
+    const current = grouped.get(matricula);
+    const normalized = {
+      ...participant,
+      nome: normalizeName(participant.nome || ""),
+      turno: String(participant.turno || "").trim(),
+      matricula,
+      totalPontos: Number(participant.totalPontos || 0),
+      partidas: Number(participant.partidas || 0),
+      melhorPartida: Number(participant.melhorPartida || 0),
+    };
+
+    if (!current) {
+      grouped.set(matricula, normalized);
+      return;
+    }
+
+    const latest = getLatestParticipant(current, normalized);
+    grouped.set(matricula, {
+      ...current,
+      nome: latest.nome,
+      turno: latest.turno,
+      matricula,
+      totalPontos: Number(current.totalPontos || 0) + normalized.totalPontos,
+      partidas: Number(current.partidas || 0) + normalized.partidas,
+      melhorPartida: Math.max(
+        Number(current.melhorPartida || 0),
+        normalized.melhorPartida,
+      ),
+      ultimaParticipacao: getLatestDateValue(
+        current.ultimaParticipacao,
+        normalized.ultimaParticipacao,
+      ),
+      criadoEm: getEarliestDateValue(current.criadoEm, normalized.criadoEm),
+      atingiuPontuacaoAtualEm: getEarliestDateValue(
+        current.atingiuPontuacaoAtualEm,
+        normalized.atingiuPontuacaoAtualEm,
+      ),
     });
+  });
+
+  return Array.from(grouped.values());
+}
+
+function normalizeName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeRegistration(value) {
+  return String(value || "").trim();
+}
+
+function isValidRegistration(value) {
+  return /^\d+$/.test(normalizeRegistration(value));
+}
+
+function getLatestParticipant(a, b) {
+  const firstDate = new Date(a.ultimaParticipacao || a.criadoEm || 0);
+  const secondDate = new Date(b.ultimaParticipacao || b.criadoEm || 0);
+  return secondDate > firstDate ? b : a;
+}
+
+function getLatestDateValue(a, b) {
+  const firstDate = new Date(a || 0);
+  const secondDate = new Date(b || 0);
+  return secondDate > firstDate ? b || a : a || b;
+}
+
+function getEarliestDateValue(a, b) {
+  if (!a) return b || "";
+  if (!b) return a;
+  return new Date(a) <= new Date(b) ? a : b;
 }
 
 function renderRanking() {
@@ -194,8 +281,11 @@ function renderRankingTable() {
   body.innerHTML = filtered
     .map((participant) => {
       const position =
-        ranking.findIndex((item) => item.matricula === participant.matricula) +
-        1;
+        ranking.findIndex(
+          (item) =>
+            normalizeRegistration(item.matricula) ===
+            normalizeRegistration(participant.matricula),
+        ) + 1;
       return `
         <tr>
           <td>${position}º</td>

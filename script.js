@@ -443,11 +443,25 @@ function setVolume(value) {
 // Validação de formulário
 // ==================================================
 function normalizeName(value) {
-  return value.trim().replace(/\s+/g, " ");
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function normalizeRegistration(value) {
-  return value.trim();
+  return String(value || "").trim();
+}
+
+function isValidRegistration(value) {
+  return /^\d+$/.test(normalizeRegistration(value));
+}
+
+function normalizePlayer(player) {
+  return {
+    nome: normalizeName(player?.nome || ""),
+    turno: String(player?.turno || "").trim(),
+    matricula: normalizeRegistration(player?.matricula || ""),
+  };
 }
 
 function validatePlayerForm() {
@@ -474,7 +488,7 @@ function validatePlayerForm() {
     valid = false;
   }
 
-  if (!matricula || !/^\d+$/.test(matricula)) {
+  if (!matricula || !isValidRegistration(matricula)) {
     setText("id-error", "A matrícula deve conter apenas números.");
     valid = false;
   }
@@ -489,7 +503,7 @@ function validatePlayerForm() {
 
   nameInput.value = name;
   idInput.value = matricula;
-  return { nome: name, turno, matricula };
+  return normalizePlayer({ nome: name, turno, matricula });
 }
 
 function setFormMessage(message, type) {
@@ -499,14 +513,14 @@ function setFormMessage(message, type) {
 }
 
 function savePlayerToSession(player) {
-  sessionStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(player));
+  sessionStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(normalizePlayer(player)));
 }
 
 function loadPlayerFromSession() {
   try {
     const saved = sessionStorage.getItem(PLAYER_STORAGE_KEY);
     if (!saved) return null;
-    return JSON.parse(saved);
+    return normalizePlayer(JSON.parse(saved));
   } catch (error) {
     return null;
   }
@@ -514,9 +528,10 @@ function loadPlayerFromSession() {
 
 function fillPlayerForm(player) {
   if (!player) return;
-  document.getElementById("player-name").value = player.nome || "";
-  document.getElementById("player-shift").value = player.turno || "";
-  document.getElementById("player-id").value = player.matricula || "";
+  const normalized = normalizePlayer(player);
+  document.getElementById("player-name").value = normalized.nome || "";
+  document.getElementById("player-shift").value = normalized.turno || "";
+  document.getElementById("player-id").value = normalized.matricula || "";
 }
 
 // ==================================================
@@ -773,11 +788,19 @@ async function saveAttemptAndParticipant() {
     throw new Error("Participante não informado.");
   }
 
+  const player = normalizePlayer(state.player);
+  if (!isValidRegistration(player.matricula)) {
+    throw new Error("Matrícula inválida.");
+  }
+
+  state.player = player;
+  savePlayerToSession(player);
+
   const now = new Date().toISOString();
   const baseAttempt = {
-    nome: state.player.nome,
-    matricula: state.player.matricula,
-    turno: state.player.turno,
+    nome: player.nome,
+    matricula: player.matricula,
+    turno: player.turno,
     pontosPartida: state.score,
     pontosAcumuladosAposPartida: 0,
     partidasAposPartida: 0,
@@ -787,17 +810,19 @@ async function saveAttemptAndParticipant() {
   };
 
   if (firebaseReady) {
-    return saveWithFirebase(baseAttempt, now);
+    return saveWithFirebase(baseAttempt, now, player);
   }
 
-  return saveLocally(baseAttempt, now);
+  return saveLocally(baseAttempt, now, player);
 }
 
-async function saveWithFirebase(baseAttempt, now) {
+async function saveWithFirebase(baseAttempt, now, player) {
+  const participantKey = player.matricula;
   const attemptRef = database.ref("attempts").push();
   await attemptRef.set(baseAttempt);
 
-  const participantRef = database.ref(`participants/${state.player.matricula}`);
+  // A matrícula normalizada é a única chave do participante no ranking.
+  const participantRef = database.ref("participants").child(participantKey);
   const transactionResult = await participantRef.transaction((current) => {
     const previousTotal = Number(current?.totalPontos || 0);
     const nextTotal = previousTotal + state.score;
@@ -805,9 +830,9 @@ async function saveWithFirebase(baseAttempt, now) {
     const previousGames = Number(current?.partidas || 0);
 
     return {
-      nome: state.player.nome,
-      matricula: state.player.matricula,
-      turno: state.player.turno,
+      nome: player.nome,
+      matricula: participantKey,
+      turno: player.turno,
       totalPontos: nextTotal,
       partidas: previousGames + 1,
       melhorPartida: Math.max(previousBest, state.score),
@@ -835,16 +860,17 @@ async function saveWithFirebase(baseAttempt, now) {
   return { participant, attemptId: attemptRef.key };
 }
 
-async function saveLocally(baseAttempt, now) {
+async function saveLocally(baseAttempt, now, player) {
+  const participantKey = player.matricula;
   const participants = getLocalParticipants();
   const attempts = getLocalAttempts();
-  const current = participants[state.player.matricula] || {};
+  const current = participants[participantKey] || {};
   const previousTotal = Number(current.totalPontos || 0);
   const nextTotal = previousTotal + state.score;
   const participant = {
-    nome: state.player.nome,
-    matricula: state.player.matricula,
-    turno: state.player.turno,
+    nome: player.nome,
+    matricula: participantKey,
+    turno: player.turno,
     totalPontos: nextTotal,
     partidas: Number(current.partidas || 0) + 1,
     melhorPartida: Math.max(Number(current.melhorPartida || 0), state.score),
@@ -862,11 +888,11 @@ async function saveLocally(baseAttempt, now) {
     finalizada: true,
   };
 
-  participants[state.player.matricula] = participant;
+  participants[participantKey] = participant;
   attempts[`local-${Date.now()}`] = attempt;
   localStorage.setItem(LOCAL_PARTICIPANTS_KEY, JSON.stringify(participants));
   localStorage.setItem(LOCAL_ATTEMPTS_KEY, JSON.stringify(attempts));
-  state.ranking = sortRanking(Object.values(participants));
+  state.ranking = sortRanking(participantsFromRecord(participants));
   return { participant, attemptId: null };
 }
 
@@ -928,7 +954,7 @@ function firstName(name) {
 // ==================================================
 function listenRanking() {
   if (!firebaseReady) {
-    state.ranking = sortRanking(Object.values(getLocalParticipants()));
+    state.ranking = sortRanking(participantsFromRecord(getLocalParticipants()));
     renderRanking();
     return;
   }
@@ -937,7 +963,7 @@ function listenRanking() {
     "value",
     (snapshot) => {
       const data = snapshot.val() || {};
-      state.ranking = sortRanking(Object.values(data));
+      state.ranking = sortRanking(participantsFromRecord(data));
       renderRanking();
     },
     (error) => {
@@ -948,7 +974,7 @@ function listenRanking() {
 }
 
 function sortRanking(participants) {
-  return participants.filter(Boolean).sort((a, b) => {
+  return mergeParticipantsByRegistration(participants).sort((a, b) => {
     const totalDiff = Number(b.totalPontos || 0) - Number(a.totalPontos || 0);
     if (totalDiff) return totalDiff;
     const gamesDiff = Number(b.partidas || 0) - Number(a.partidas || 0);
@@ -967,9 +993,84 @@ function sortRanking(participants) {
   });
 }
 
+function participantsFromRecord(record) {
+  return Object.entries(record || {}).map(([key, value]) => ({
+    ...(value || {}),
+    matricula: normalizeRegistration(value?.matricula || key),
+  }));
+}
+
+function mergeParticipantsByRegistration(participants) {
+  const grouped = new Map();
+
+  participants.filter(Boolean).forEach((participant) => {
+    const matricula = normalizeRegistration(participant.matricula);
+    if (!isValidRegistration(matricula)) return;
+
+    const current = grouped.get(matricula);
+    const normalized = {
+      ...participant,
+      nome: normalizeName(participant.nome || ""),
+      turno: String(participant.turno || "").trim(),
+      matricula,
+      totalPontos: Number(participant.totalPontos || 0),
+      partidas: Number(participant.partidas || 0),
+      melhorPartida: Number(participant.melhorPartida || 0),
+    };
+
+    if (!current) {
+      grouped.set(matricula, normalized);
+      return;
+    }
+
+    const latest = getLatestParticipant(current, normalized);
+    grouped.set(matricula, {
+      ...current,
+      nome: latest.nome,
+      turno: latest.turno,
+      matricula,
+      totalPontos: Number(current.totalPontos || 0) + normalized.totalPontos,
+      partidas: Number(current.partidas || 0) + normalized.partidas,
+      melhorPartida: Math.max(
+        Number(current.melhorPartida || 0),
+        normalized.melhorPartida,
+      ),
+      ultimaParticipacao: getLatestDateValue(
+        current.ultimaParticipacao,
+        normalized.ultimaParticipacao,
+      ),
+      criadoEm: getEarliestDateValue(current.criadoEm, normalized.criadoEm),
+      atingiuPontuacaoAtualEm: getEarliestDateValue(
+        current.atingiuPontuacaoAtualEm,
+        normalized.atingiuPontuacaoAtualEm,
+      ),
+    });
+  });
+
+  return Array.from(grouped.values());
+}
+
+function getLatestParticipant(a, b) {
+  const firstDate = new Date(a.ultimaParticipacao || a.criadoEm || 0);
+  const secondDate = new Date(b.ultimaParticipacao || b.criadoEm || 0);
+  return secondDate > firstDate ? b : a;
+}
+
+function getLatestDateValue(a, b) {
+  const firstDate = new Date(a || 0);
+  const secondDate = new Date(b || 0);
+  return secondDate > firstDate ? b || a : a || b;
+}
+
+function getEarliestDateValue(a, b) {
+  if (!a) return b || "";
+  if (!b) return a;
+  return new Date(a) <= new Date(b) ? a : b;
+}
+
 function renderRanking() {
   if (!firebaseReady) {
-    state.ranking = sortRanking(Object.values(getLocalParticipants()));
+    state.ranking = sortRanking(participantsFromRecord(getLocalParticipants()));
   }
 
   renderTop3();
@@ -983,10 +1084,14 @@ function renderRanking() {
 }
 
 function mergeParticipantIntoRanking(participant) {
+  const normalizedMatricula = normalizeRegistration(participant.matricula);
   const others = state.ranking.filter(
-    (item) => item.matricula !== participant.matricula,
+    (item) => normalizeRegistration(item.matricula) !== normalizedMatricula,
   );
-  state.ranking = sortRanking([...others, participant]);
+  state.ranking = sortRanking([
+    ...others,
+    { ...participant, matricula: normalizedMatricula },
+  ]);
 }
 
 function renderTop3() {
@@ -1066,9 +1171,12 @@ function renderRankingTable() {
 }
 
 function getParticipantPosition(matricula) {
+  const normalizedMatricula = normalizeRegistration(matricula);
   const sorted = sortRanking(state.ranking);
   return (
-    sorted.findIndex((participant) => participant.matricula === matricula) + 1
+    sorted.findIndex(
+      (participant) => normalizeRegistration(participant.matricula) === normalizedMatricula,
+    ) + 1
   );
 }
 
@@ -1132,8 +1240,8 @@ function bindEvents() {
     showScreen("instructions");
   });
 
-  document.getElementById("player-id").addEventListener("input", (event) => {
-    event.target.value = event.target.value.replace(/\D/g, "");
+  document.getElementById("player-id").addEventListener("change", (event) => {
+    event.target.value = normalizeRegistration(event.target.value);
   });
 
   document
