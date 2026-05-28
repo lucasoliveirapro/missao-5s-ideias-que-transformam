@@ -237,23 +237,43 @@ export default class MissionScene extends Phaser.Scene {
   }
 
   createButton(x, y, width, height, label, color, callback) {
-    const container = this.add.container(x, y);
     const rect = this.add
-      .rectangle(0, 0, width, height, color, 1)
-      .setStrokeStyle(2, COLORS.white, 0.14)
-      .setInteractive({ useHandCursor: true });
+      .rectangle(x, y, width, height, color, 1)
+      .setStrokeStyle(2, COLORS.white, 0.14);
     const text = this.add
-      .text(0, 0, label, {
+      .text(x, y, label, {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "17px",
         fontStyle: "700",
         color: "#ffffff"
       })
       .setOrigin(0.5);
-    container.add([rect, text]);
-    rect.on("pointerover", () => rect.setAlpha(0.86));
-    rect.on("pointerout", () => rect.setAlpha(1));
-    rect.on("pointerdown", callback);
-    return container;
+    const zone = this.add.zone(x, y, width, height).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    let locked = false;
+
+    zone.on("pointerover", () => rect.setAlpha(0.86));
+    zone.on("pointerout", () => {
+      if (!locked) {
+        rect.setAlpha(1);
+      }
+    });
+    zone.on("pointerup", () => {
+      if (locked || document.body.classList.contains("has-active-overlay")) {
+        return;
+      }
+
+      locked = true;
+      rect.setAlpha(0.72);
+      this.time.delayedCall(20, () => {
+        callback();
+        this.time.delayedCall(280, () => {
+          if (zone.scene) {
+            locked = false;
+            rect.setAlpha(1);
+          }
+        });
+      });
+    });
+    return { rect, text, zone };
   }
 }
