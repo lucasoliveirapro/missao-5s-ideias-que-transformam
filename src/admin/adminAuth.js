@@ -1,26 +1,48 @@
-import { auth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "../firebase.js";
+import { isSupabaseConfigured, supabase } from "../supabase.js";
 
-export function watchAdminAuth(callback) {
-  if (!auth) {
+export async function getCurrentSession() {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(error.message || "Não foi possível verificar a sessão.");
+  }
+  return data.session;
+}
+
+export function onAdminAuthChange(callback) {
+  if (!isSupabaseConfigured()) {
     callback(null);
     return () => {};
   }
 
-  return onAuthStateChanged(auth, callback);
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
+  return () => data.subscription.unsubscribe();
 }
 
-export async function loginAdmin(email, password) {
-  if (!auth) {
-    throw new Error("Firebase ainda não configurado.");
+export async function signInAdmin(email, password) {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase ainda não configurado.");
   }
 
-  return signInWithEmailAndPassword(auth, email, password);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    throw new Error(error.message || "Não foi possível entrar.");
+  }
+
+  return data.session;
 }
 
-export async function logoutAdmin() {
-  if (!auth) {
+export async function signOutAdmin() {
+  if (!isSupabaseConfigured()) {
     return;
   }
 
-  await signOut(auth);
+  await supabase.auth.signOut();
 }

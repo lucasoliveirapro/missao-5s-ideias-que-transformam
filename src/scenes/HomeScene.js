@@ -5,6 +5,7 @@ import { showRegistrationForm } from "../ui/forms.js";
 
 const COLORS = {
   navy: 0x0b1f3a,
+  navy2: 0x102c4a,
   steel: 0x28445f,
   white: 0xffffff,
   orange: 0xf58220,
@@ -35,16 +36,11 @@ export default class HomeScene extends Phaser.Scene {
   render() {
     this.children.removeAll(true);
     const { width, height } = this.scale;
-    this.drawBackground(width, height);
-
     const centerX = width / 2;
-    const top = Math.max(72, height * 0.13);
+    const top = Math.max(72, height * 0.12);
 
-    if (this.textures.exists("logo-5s")) {
-      const logo = this.add.image(centerX, top - 20, "logo-5s");
-      logo.setDisplaySize(92, 92);
-      logo.setAlpha(0.95);
-    }
+    this.drawBackground(width, height);
+    this.drawShield(centerX, top - 16, Math.min(82, width * 0.2));
 
     this.add
       .text(centerX, top + 68, "Missão 5S", {
@@ -67,7 +63,7 @@ export default class HomeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, top + 176, "Lance melhorias, envie foto do local e suba no ranking.", {
+      .text(centerX, top + 176, "Lance melhorias bem descritas e suba no ranking.", {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: `${Math.min(21, Math.max(16, width * 0.026))}px`,
         color: "#dbe8f6",
@@ -110,24 +106,23 @@ export default class HomeScene extends Phaser.Scene {
 
   drawBackground(width, height) {
     this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
+    this.add.rectangle(width / 2, 0, width, Math.max(160, height * 0.24), COLORS.steel, 0.32).setOrigin(0.5, 0);
 
-    if (this.textures.exists("factory-bg")) {
-      const bg = this.add.image(width / 2, height / 2, "factory-bg");
-      bg.setDisplaySize(width, height);
-      bg.setAlpha(0.28);
+    for (let index = 0; index < 9; index += 1) {
+      const y = height * 0.16 + index * 72;
+      this.add.rectangle(width / 2, y, width * 0.96, 2, COLORS.white, 0.04 + index * 0.004);
     }
 
     for (let index = 0; index < 8; index += 1) {
-      const y = height * 0.18 + index * 72;
-      const alpha = 0.04 + index * 0.006;
-      this.add.rectangle(width / 2, y, width * 0.96, 2, COLORS.white, alpha);
+      const x = width * 0.08 + index * (width / 7);
+      this.add.rectangle(x, height * 0.52, 2, height * 0.78, COLORS.white, 0.035);
     }
 
-    const beam = this.add.rectangle(width * 0.18, height * 0.52, 14, height * 0.9, COLORS.orange, 0.28);
+    const beam = this.add.rectangle(width * 0.18, height * 0.55, 14, height * 0.9, COLORS.orange, 0.26);
     beam.setAngle(-18);
     this.tweens.add({
       targets: beam,
-      alpha: { from: 0.18, to: 0.42 },
+      alpha: { from: 0.16, to: 0.4 },
       duration: 1800,
       yoyo: true,
       repeat: -1
@@ -137,16 +132,31 @@ export default class HomeScene extends Phaser.Scene {
     this.add.circle(width * 0.22, height * 0.72, 130, COLORS.orange, 0.07);
   }
 
+  drawShield(x, y, size) {
+    const points = [
+      -0.42, -0.45,
+      0.42, -0.45,
+      0.36, 0.16,
+      0, 0.5,
+      -0.36, 0.16
+    ].map((value) => value * size);
+    this.add.polygon(x, y, points, COLORS.navy2, 0.95).setStrokeStyle(3, COLORS.orange, 0.9);
+    this.add.text(x, y - size * 0.05, "5S", {
+      fontFamily: "Arial, Helvetica, sans-serif",
+      fontSize: `${Math.max(22, size * 0.34)}px`,
+      fontStyle: "900",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+  }
+
   createAccentLine(x, y, width) {
     this.add.rectangle(x, y, width, 4, COLORS.orange, 0.95);
     this.add.rectangle(x, y + 8, width * 0.62, 2, COLORS.cyan, 0.85);
   }
 
   createButton(x, y, width, height, label, color, callback) {
-    const rect = this.add
-      .rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(2, COLORS.white, 0.16);
-    const text = this.add
+    const rect = this.add.rectangle(x, y, width, height, color, 1).setStrokeStyle(2, COLORS.white, 0.16);
+    this.add
       .text(x, y, label, {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "18px",
@@ -159,15 +169,10 @@ export default class HomeScene extends Phaser.Scene {
 
     zone.on("pointerover", () => rect.setAlpha(0.86));
     zone.on("pointerout", () => {
-      if (!locked) {
-        rect.setAlpha(1);
-      }
+      if (!locked) rect.setAlpha(1);
     });
     zone.on("pointerup", () => {
-      if (locked || document.body.classList.contains("has-active-overlay")) {
-        return;
-      }
-
+      if (locked || document.body.classList.contains("has-active-overlay")) return;
       locked = true;
       rect.setAlpha(0.72);
       this.time.delayedCall(20, () => {
@@ -180,6 +185,6 @@ export default class HomeScene extends Phaser.Scene {
         });
       });
     });
-    return { rect, text, zone };
+    return { rect, zone };
   }
 }

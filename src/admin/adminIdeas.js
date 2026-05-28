@@ -1,141 +1,122 @@
-import {
-  db,
-  deleteObject,
-  get,
-  isFirebaseConfigured,
-  onValue,
-  ref,
-  remove,
-  storage,
-  storageRef,
-  update
-} from "../firebase.js";
-import { IDEA_STATUSES, POINTS, nowIso, sortParticipants } from "../utils.js";
+import { isSupabaseConfigured, supabase } from "../supabase.js";
+import { IDEA_STATUSES, POINTS } from "../utils.js";
 
-function snapshotToArray(snapshot) {
-  const value = snapshot.val() || {};
-  return Object.entries(value).map(([key, item]) => ({ ...item, id: item.id || key }));
+function supabaseError(error, fallback) {
+  return new Error(error?.message || fallback);
 }
 
-export function listenAdminData(callback, onError) {
-  if (!isFirebaseConfigured()) {
-    callback({ ideas: [], participants: [] });
-    return () => {};
+export async function loadAdminData() {
+  if (!isSupabaseConfigured()) {
+    return { ideas: [], participants: [] };
   }
 
-  let ideas = [];
-  let participants = [];
+  const [ideasResult, participantsResult] = await Promise.all([
+    supabase.from("ideas").select("*").order("criado_em", { ascending: false }),
+    supabase
+      .from("participants")
+      .select("*")
+      .order("total_ideias", { ascending: false })
+      .order("total_pontos", { ascending: false })
+      .order("ultima_participacao", { ascending: true, nullsFirst: false })
+  ]);
 
-  const emit = () => callback({ ideas, participants: sortParticipants(participants) });
+  if (ideasResult.error) {
+    throw supabaseError(ideasResult.error, "Não foi possível carregar as ideias.");
+  }
 
-  const unsubscribeIdeas = onValue(
-    ref(db, "ideas"),
-    (snapshot) => {
-      ideas = snapshotToArray(snapshot).sort((a, b) => Date.parse(b.dataHora || "") - Date.parse(a.dataHora || ""));
-      emit();
-    },
-    onError
-  );
+  if (participantsResult.error) {
+    throw supabaseError(participantsResult.error, "Não foi possível carregar os participantes.");
+  }
 
-  const unsubscribeParticipants = onValue(
-    ref(db, "participants"),
-    (snapshot) => {
-      participants = snapshotToArray(snapshot);
-      emit();
-    },
-    onError
-  );
-
-  return () => {
-    unsubscribeIdeas();
-    unsubscribeParticipants();
+  return {
+    ideas: ideasResult.data || [],
+    participants: participantsResult.data || []
   };
 }
 
-export async function changeIdeaStatus(ideaId, nextStatus) {
+export async function updateIdeaStatus(ideaId, nextStatus) {
   if (!IDEA_STATUSES.includes(nextStatus)) {
     throw new Error("Status inválido.");
   }
 
-  const ideaRef = ref(db, `ideas/${ideaId}`);
-  const ideaSnapshot = await get(ideaRef);
-  if (!ideaSnapshot.exists()) {
-    throw new Error("Ideia não encontrada.");
-  }
+  const { data: currentIdea, error: ideaError } = await supabase
+    .from("ideas")
+    .select("*")
+    .eq("id", ideaId)
+    .single();
 
-  const idea = ideaSnapshot.val();
-  const matricula = idea.matricula;
-  const participantRef = ref(db, `participants/${matricula}`);
-  const participantSnapshot = await get(participantRef);
-  const participant = participantSnapshot.exists() ? participantSnapshot.val() : null;
-  const date = nowIso();
-  const rootUpdates = {
-    [`ideas/${ideaId}/status`]: nextStatus,
-    [`ideas/${ideaId}/atualizadoEm`]: date
-  };
+  if (ideaError) {
+    throw supabaseError(ideaError, "Não foi possível buscar a ideia.");
+  }
 
   let bonus = 0;
-  const bonusStatus = {
-    aprovada: Boolean(idea.bonusStatus?.aprovada),
-    implantada: Boolean(idea.bonusStatus?.implantada)
+  const ideaUpdate = {
+    status: nextStatus,
+    atualizado_em: new Date().toISOString()
   };
 
-  if (nextStatus === "Aprovada" && !bonusStatus.aprovada) {
+  if (nextStatus === "Aprovada" && !currentIdea.bonus_aprovada) {
     bonus += POINTS.approved;
-    bonusStatus.aprovada = true;
+    ideaUpdate.bonus_aprovada = true;
   }
 
-  if (nextStatus === "Implantada" && !bonusStatus.implantada) {
+  if (nextStatus === "Implantada" && !currentIdea.bonus_implantada) {
     bonus += POINTS.implemented;
-    bonusStatus.implantada = true;
+    ideaUpdate.bonus_implantada = true;
   }
-
-  rootUpdates[`ideas/${ideaId}/bonusStatus`] = bonusStatus;
 
   if (bonus > 0) {
-    rootUpdates[`ideas/${ideaId}/pontos`] = Number(idea.pontos || 0) + bonus;
-
-    if (participant) {
-      rootUpdates[`participants/${matricula}/totalPontos`] = Number(participant.totalPontos || 0) + bonus;
-      rootUpdates[`participants/${matricula}/ultimaParticipacao`] = participant.ultimaParticipacao || date;
-    } else {
-      rootUpdates[`participants/${matricula}`] = {
-        nome: idea.nome,
-        matricula,
-        turno: idea.turno,
-        totalIdeias: 1,
-        totalPontos: Number(idea.pontos || 0) + bonus,
-        ultimaParticipacao: idea.dataHora || date,
-        criadoEm: idea.dataHora || date
-      };
-    }
+    ideaUpdate.pontos = Number(currentIdea.pontos || POINTS.idea) + bonus;
   }
 
-  await update(ref(db), rootUpdates);
-  return { bonus };
+  const { data: updatedIdea, error: updateError } = await supabase
+    .from("ideas")
+    .update(ideaUpdate)
+    .eq("id", ideaId)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    throw supabaseError(updateError, "Não foi possível atualizar o status.");
+  }
+
+  if (bonus > 0) {
+    await addParticipantBonus(currentIdea.participant_id, currentIdea.matricula, bonus);
+  }
+
+  return updatedIdea;
 }
 
-export async function clearEventData(ideas) {
-  const photos = ideas.filter((idea) => idea.fotoPath).map((idea) => idea.fotoPath);
-  const photoResults = [];
+async function addParticipantBonus(participantId, matricula, bonus) {
+  const query = supabase.from("participants").select("*");
+  const { data: participant, error } = participantId
+    ? await query.eq("id", participantId).single()
+    : await query.eq("matricula", matricula).single();
 
-  if (storage && photos.length) {
-    for (const fotoPath of photos) {
-      try {
-        await deleteObject(storageRef(storage, fotoPath));
-        photoResults.push({ fotoPath, ok: true });
-      } catch (error) {
-        photoResults.push({ fotoPath, ok: false, message: error.message });
-      }
-    }
+  if (error) {
+    throw supabaseError(error, "Status atualizado, mas não foi possível buscar o participante para pontuar.");
   }
 
-  await remove(ref(db, "participants"));
-  await remove(ref(db, "ideas"));
+  const { error: updateError } = await supabase
+    .from("participants")
+    .update({
+      total_pontos: Number(participant.total_pontos || 0) + bonus
+    })
+    .eq("id", participant.id);
 
-  return {
-    photosAttempted: photos.length,
-    photosDeleted: photoResults.filter((item) => item.ok).length,
-    photosFailed: photoResults.filter((item) => !item.ok).length
-  };
+  if (updateError) {
+    throw supabaseError(updateError, "Status atualizado, mas não foi possível aplicar o bônus.");
+  }
+}
+
+export async function clearEventData() {
+  const ideasResult = await supabase.from("ideas").delete().not("id", "is", null);
+  if (ideasResult.error) {
+    throw supabaseError(ideasResult.error, "Não foi possível apagar as ideias.");
+  }
+
+  const participantsResult = await supabase.from("participants").delete().not("id", "is", null);
+  if (participantsResult.error) {
+    throw supabaseError(participantsResult.error, "Não foi possível apagar os participantes.");
+  }
 }

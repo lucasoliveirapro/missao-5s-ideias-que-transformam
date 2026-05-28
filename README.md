@@ -1,56 +1,45 @@
 # Missão 5S: Ideias que Transformam
 
-Plataforma gamificada para evento de 5S na Funilaria de uma indústria automotiva.
+Plataforma gamificada para evento de 5S na Funilaria. O colaborador acessa pelo celular ou desktop, informa nome, matrícula e turno, lança ideias de melhoria bem descritas, soma pontos e sobe no ranking.
 
-O colaborador acessa pelo celular ou desktop, cadastra nome, matrícula e turno, lança ideias de melhoria com foto do local, acumula pontos e sobe no ranking. Não é quiz.
+## 1. Objetivo
 
-## 1. Objetivo do projeto
+Registrar oportunidades de melhoria 5S com foco em organização, limpeza, utilização, saúde e disciplina. O sistema não é quiz e não usa anexos.
 
-Criar uma campanha digital 5S com aparência oficial, fluxo simples em campo e painel administrativo separado para acompanhamento, status, bônus, exportação e limpeza dos dados do evento.
+## 2. Tecnologias
 
-Frase principal: **Viu uma oportunidade de melhoria? Registre sua ideia!**
+- Phaser 4
+- Vite
+- JavaScript
+- HTML e CSS
+- Supabase Database/Postgres
+- Supabase Auth para admin
+- Supabase Row Level Security
+- Vercel
 
-## 2. Tecnologias usadas
-
-- Phaser 4 para a camada visual gamificada.
-- Vite para desenvolvimento e build.
-- JavaScript, HTML e CSS.
-- Firebase JavaScript SDK modular.
-- Firebase Realtime Database.
-- Firebase Storage.
-- Firebase Authentication para o admin.
-- Vercel para publicação.
-- GitHub para versionamento.
-
-## 3. Como instalar
+## 3. Instalação
 
 ```bash
 npm install
 ```
 
-## 4. Como rodar localmente
+## 4. Rodar localmente
 
 ```bash
 npm run dev
 ```
 
-Depois abra a URL exibida no terminal, normalmente `http://localhost:5173`.
+Abra a URL mostrada pelo Vite.
 
-## 5. Como fazer build
+## 5. Build
 
 ```bash
 npm run build
 ```
 
-Para conferir a versão de produção:
+## 6. Publicar na Vercel
 
-```bash
-npm run preview
-```
-
-## 6. Como publicar na Vercel
-
-1. Suba o projeto para um repositório GitHub.
+1. Suba este projeto para o GitHub.
 2. Na Vercel, escolha **Add New Project**.
 3. Importe o repositório.
 4. Framework: **Vite**.
@@ -58,170 +47,257 @@ npm run preview
 6. Output directory: `dist`.
 7. Publique.
 
-## 7. Como configurar Firebase
+## 7. Configurar Supabase
 
-Crie um projeto no Firebase Console e ative:
+Crie um projeto no Supabase e abra **Project Settings > API**.
 
-- Realtime Database.
-- Storage.
-- Authentication com provedor **Email/Password**.
+Copie:
 
-## 8. Como ativar Realtime Database
+- Project URL
+- anon public key
 
-No Firebase Console:
+Cole em [src/supabase.js](src/supabase.js):
 
-1. Acesse **Build > Realtime Database**.
-2. Clique em **Create Database**.
-3. Escolha uma região.
-4. Comece em modo bloqueado e aplique as regras recomendadas abaixo.
+```js
+const SUPABASE_URL = "https://seu-projeto.supabase.co";
+const SUPABASE_ANON_KEY = "sua-anon-key";
+```
 
-## 9. Como ativar Storage
+Se esses campos estiverem vazios, o app abre visualmente e mostra:
 
-No Firebase Console:
+> Supabase ainda não configurado. O envio de ideias e ranking online dependem da configuração.
 
-1. Acesse **Build > Storage**.
-2. Clique em **Get started**.
-3. Comece em modo bloqueado.
-4. Aplique as regras recomendadas de Storage.
+## 8. SQL das tabelas
 
-## 10. Como ativar Authentication
+Execute no **SQL Editor** do Supabase:
 
-No Firebase Console:
+```sql
+create extension if not exists pgcrypto;
 
-1. Acesse **Build > Authentication**.
-2. Clique em **Get started**.
-3. Em **Sign-in method**, ative **Email/Password**.
+create table if not exists public.participants (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null,
+  matricula text not null unique,
+  turno text not null,
+  total_ideias integer not null default 0,
+  total_pontos integer not null default 0,
+  criado_em timestamptz not null default now(),
+  ultima_participacao timestamptz,
+  constraint participants_matricula_digits check (matricula ~ '^[0-9]+$'),
+  constraint participants_turno_check check (turno in ('1º Turno', '2º Turno', '3º Turno')),
+  constraint participants_totals_check check (total_ideias >= 0 and total_pontos >= 0)
+);
 
-## 11. Como criar usuário admin
+create table if not exists public.ideas (
+  id uuid primary key default gen_random_uuid(),
+  participant_id uuid references public.participants(id) on delete cascade,
+  matricula text not null,
+  nome text not null,
+  turno text not null,
+  titulo text not null,
+  area text not null,
+  descricao_local text not null,
+  problema_observado text not null,
+  sugestao_melhoria text not null,
+  senso text not null,
+  status text not null default 'Recebida',
+  pontos integer not null default 10,
+  bonus_aprovada boolean not null default false,
+  bonus_implantada boolean not null default false,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  constraint ideas_matricula_digits check (matricula ~ '^[0-9]+$'),
+  constraint ideas_turno_check check (turno in ('1º Turno', '2º Turno', '3º Turno')),
+  constraint ideas_senso_check check (senso in (
+    'SEIRI — Utilização',
+    'SEITON — Organização',
+    'SEISOU — Limpeza',
+    'SEIKETSU — Saúde',
+    'SHITSUKE — Disciplina'
+  )),
+  constraint ideas_status_check check (status in ('Recebida', 'Em análise', 'Aprovada', 'Implantada', 'Recusada')),
+  constraint ideas_points_check check (pontos >= 0),
+  constraint ideas_text_min_check check (
+    char_length(trim(descricao_local)) >= 15
+    and char_length(trim(problema_observado)) >= 15
+    and char_length(trim(sugestao_melhoria)) >= 15
+  )
+);
 
-No Firebase Console:
+create index if not exists participants_ranking_idx
+  on public.participants (total_ideias desc, total_pontos desc, ultima_participacao asc);
 
-1. Acesse **Authentication > Users**.
+create index if not exists ideas_filters_idx
+  on public.ideas (turno, senso, status, criado_em desc);
+```
+
+## 9. Ativar Supabase Auth
+
+1. Abra **Authentication > Providers**.
+2. Deixe **Email** habilitado.
+3. Para evento interno, você pode desabilitar cadastro público e criar usuários manualmente.
+
+## 10. Criar usuário admin
+
+1. Abra **Authentication > Users**.
 2. Clique em **Add user**.
 3. Informe e-mail e senha.
-4. Use esse e-mail e senha em `admin.html`.
+4. Use esse login em `/admin.html`.
 
-Não existe senha fixa no JavaScript.
+Esta versão considera todo usuário autenticado como administrador. Crie apenas contas administrativas no Supabase Auth.
 
-## 12. Onde colar firebaseConfig
+## 11. Row Level Security
 
-Cole as credenciais em [src/firebase.js](src/firebase.js), no objeto:
+Execute depois das tabelas:
 
-```js
-const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
-  measurementId: ""
-};
+```sql
+alter table public.participants enable row level security;
+alter table public.ideas enable row level security;
+
+grant select, insert, update on public.participants to anon, authenticated;
+grant insert on public.ideas to anon;
+grant select, update, delete on public.ideas to authenticated;
+
+drop policy if exists "public_read_ranking" on public.participants;
+create policy "public_read_ranking"
+on public.participants
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "public_insert_participants" on public.participants;
+create policy "public_insert_participants"
+on public.participants
+for insert
+to anon
+with check (
+  matricula ~ '^[0-9]+$'
+  and turno in ('1º Turno', '2º Turno', '3º Turno')
+  and total_ideias = 0
+  and total_pontos = 0
+);
+
+drop policy if exists "public_update_participants" on public.participants;
+create policy "public_update_participants"
+on public.participants
+for update
+to anon
+using (true)
+with check (
+  matricula ~ '^[0-9]+$'
+  and turno in ('1º Turno', '2º Turno', '3º Turno')
+  and total_ideias >= 0
+  and total_pontos >= 0
+);
+
+drop policy if exists "admin_manage_participants" on public.participants;
+create policy "admin_manage_participants"
+on public.participants
+for all
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists "public_insert_ideas" on public.ideas;
+create policy "public_insert_ideas"
+on public.ideas
+for insert
+to anon
+with check (
+  status = 'Recebida'
+  and pontos = 10
+  and bonus_aprovada = false
+  and bonus_implantada = false
+  and matricula ~ '^[0-9]+$'
+  and turno in ('1º Turno', '2º Turno', '3º Turno')
+  and senso in (
+    'SEIRI — Utilização',
+    'SEITON — Organização',
+    'SEISOU — Limpeza',
+    'SEIKETSU — Saúde',
+    'SHITSUKE — Disciplina'
+  )
+  and char_length(trim(descricao_local)) >= 15
+  and char_length(trim(problema_observado)) >= 15
+  and char_length(trim(sugestao_melhoria)) >= 15
+);
+
+drop policy if exists "admin_read_ideas" on public.ideas;
+create policy "admin_read_ideas"
+on public.ideas
+for select
+to authenticated
+using (true);
+
+drop policy if exists "admin_update_ideas" on public.ideas;
+create policy "admin_update_ideas"
+on public.ideas
+for update
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists "admin_delete_ideas" on public.ideas;
+create policy "admin_delete_ideas"
+on public.ideas
+for delete
+to authenticated
+using (true);
 ```
 
-Enquanto esse objeto estiver vazio, o app abre visualmente e mostra o aviso de que o Firebase ainda não foi configurado.
+Observação: sem backend próprio, o front-end ainda calcula incremento de pontos. Para segurança corporativa forte, o ideal é mover pontuação e bônus para uma função SQL/RPC `security definer` ou Edge Function validada no servidor.
 
-## 13. Regras recomendadas do Realtime Database
+## 12. Acessar admin
 
-Use como ponto de partida para evento interno controlado:
-
-```json
-{
-  "rules": {
-    "participants": {
-      ".read": true,
-      "$matricula": {
-        ".write": "auth != null || (!data.exists() || newData.child('matricula').val() === $matricula)",
-        ".validate": "newData.hasChildren(['nome','matricula','turno','totalIdeias','totalPontos','ultimaParticipacao','criadoEm']) && newData.child('matricula').val() === $matricula && newData.child('nome').isString() && newData.child('turno').isString() && newData.child('totalIdeias').isNumber() && newData.child('totalPontos').isNumber()"
-      }
-    },
-    "ideas": {
-      ".read": "auth != null",
-      "$ideaId": {
-        ".write": "auth != null || (!data.exists() && newData.child('status').val() === 'Recebida' && newData.child('pontos').val() === 15 && newData.child('bonusStatus').child('aprovada').val() === false && newData.child('bonusStatus').child('implantada').val() === false)",
-        ".validate": "newData.hasChildren(['id','nome','matricula','turno','titulo','descricao','senso','area','fotoUrl','fotoPath','status','pontos','bonusStatus','dataHora','atualizadoEm'])"
-      }
-    }
-  }
-}
-```
-
-Para segurança corporativa forte, o ideal é usar Cloud Functions para validar pontuação no servidor. Esta versão é adequada para evento interno controlado.
-
-## 14. Regras recomendadas do Storage
-
-O app público precisa enviar a imagem e obter `downloadURL`. O arquivo pronto está em `storage.rules`.
-
-Para evento interno controlado, publique estas regras no Firebase Storage:
-
-```js
-rules_version = '2';
-
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /ideas/{matricula}/{fileName} {
-      allow read: if true;
-
-      allow write: if request.auth != null || (
-        resource == null
-        && request.resource != null
-        && matricula.matches('^[0-9]+$')
-        && request.resource.size <= 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*')
-      );
-    }
-  }
-}
-```
-
-Em ambiente corporativo mais rígido, prefira autenticação do participante ou Cloud Functions para gerar uploads controlados.
-
-Se o navegador mostrar erro de CORS no upload da foto, configure CORS no bucket do Storage. O arquivo pronto está em `cors.json`:
-
-```json
-[
-  {
-    "origin": ["*"],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
-    "responseHeader": [
-      "Content-Type",
-      "Authorization",
-      "x-firebase-gmpid",
-      "x-firebase-storage-version",
-      "x-goog-upload-command",
-      "x-goog-upload-header-content-length",
-      "x-goog-upload-header-content-type",
-      "x-goog-upload-protocol",
-      "x-goog-upload-status",
-      "x-goog-upload-url"
-    ],
-    "maxAgeSeconds": 3600
-  }
-]
-```
-
-Aplicação via Google Cloud CLI ou Cloud Shell:
-
-```bash
-gcloud storage buckets update gs://missao-5s.firebasestorage.app --cors-file=cors.json
-```
-
-Se o Firebase Console mostrar outro bucket, substitua `missao-5s.firebasestorage.app` pelo nome exibido em **Storage > Files**.
-
-## 15. Como acessar admin.html
-
-O painel administrativo fica em:
+O painel fica em:
 
 ```text
 /admin.html
 ```
 
-Não há link para `admin.html` dentro da tela pública.
+Não existe link para o admin dentro da tela pública.
 
-## 16. Como adicionar áudios
+## 13. Testar envio de ideia
 
-Adicione arquivos MP3 reais em [assets/audio](assets/audio):
+1. Configure Supabase URL e anon key.
+2. Execute o SQL e as políticas RLS.
+3. Rode `npm run dev`.
+4. Entre na missão.
+5. Informe nome completo, matrícula numérica e turno.
+6. Clique em **Lançar Nova Ideia**.
+7. Preencha título, área, descrição do local, problema, sugestão e senso.
+8. Envie.
+
+Cada ideia enviada soma 10 pontos.
+
+## 14. Testar ranking
+
+1. Envie ideias com matrículas diferentes.
+2. Abra **Ver Ranking**.
+3. Confira a ordenação:
+   1. mais ideias
+   2. mais pontos
+   3. participação mais antiga em caso de empate
+
+## 15. Exportar CSV
+
+1. Acesse `/admin.html`.
+2. Faça login com usuário do Supabase Auth.
+3. Clique em **Exportar CSV**.
+
+O CSV contém nome, matrícula, turno, título, área, descrições, senso, status, pontos e data.
+
+## 16. Limpar dados
+
+No admin, clique em **Limpar dados do evento** e confirme:
+
+> Tem certeza que deseja apagar todos os dados do evento? Essa ação não poderá ser desfeita.
+
+A limpeza apaga `ideas` e `participants`.
+
+## 17. Áudios opcionais
+
+Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
 - `musica-fundo.mp3`
 - `ideia-enviada.mp3`
@@ -229,66 +305,13 @@ Adicione arquivos MP3 reais em [assets/audio](assets/audio):
 - `top3.mp3`
 - `continue-participando.mp3`
 
-O audio so inicia apos interacao do usuario. Se um arquivo estiver ausente, vazio ou invalido, o app continua funcionando e nao tenta tocar o MP3 corrompido.
+Se os arquivos não existirem, o app usa fallback silencioso e continua funcionando.
 
-## 17. Como testar envio de ideia
+## 18. Segurança
 
-1. Configure Firebase.
-2. Rode `npm run dev`.
-3. Entre na missão.
-4. Cadastre nome completo, matrícula numérica e turno.
-5. Clique em **Lançar Nova Ideia**.
-6. Preencha título, descrição, senso, área e foto.
-7. Envie.
-8. Confira `/ideas` e `/participants` no Realtime Database e a foto em Storage.
-
-## 18. Como testar ranking
-
-1. Envie ideias com matrículas diferentes.
-2. Abra **Ver Ranking**.
-3. O ranking agrupa por matrícula e ordena por:
-   1. maior total de ideias;
-   2. maior total de pontos;
-   3. participação mais antiga em caso de empate.
-
-Nome nunca é usado como chave única.
-
-## 19. Como exportar CSV
-
-1. Acesse `/admin.html`.
-2. Entre com usuário criado no Firebase Authentication.
-3. Clique em **Exportar CSV**.
-
-O CSV inclui nome, matrícula, turno, título, descrição, senso, área, status, pontos, fotoUrl e dataHora.
-
-## 20. Como limpar dados
-
-No admin, clique em **Limpar dados do evento** e confirme:
-
-> Tem certeza que deseja apagar todos os dados do evento? Essa ação não poderá ser desfeita.
-
-O sistema remove:
-
-- `participants`
-- `ideas`
-- fotos conhecidas em `fotoPath`, quando as regras de Storage permitirem
-
-Sem backend administrativo, o front-end não lista fotos órfãs que não estejam mais referenciadas no banco.
-
-## 21. Observações de segurança
-
-- Não há senha administrativa fixa no JavaScript.
-- Admin usa Firebase Authentication por e-mail e senha.
-- O painel admin só carrega dados quando há usuário autenticado.
-- O público não precisa ler `/ideas`; o ranking público usa `/participants`.
-- Regras abertas não devem ser usadas em produção.
-- Pontuação no front-end é suficiente para evento interno controlado, mas validação forte deve ir para Cloud Functions.
-
-## 22. Como gerar QR Code do link da Vercel
-
-Depois de publicar:
-
-1. Copie a URL pública da Vercel.
-2. Use um gerador de QR Code corporativo aprovado pela empresa.
-3. Aponte o QR Code para a URL do app, não para `/admin.html`.
-4. Teste o QR Code em Android e iPhone antes do evento.
+- Não use senha fixa no JavaScript.
+- Não coloque senha administrativa no front-end.
+- Use Supabase Auth para o admin.
+- Mantenha RLS ativo.
+- Para restringir admin com mais rigor, crie uma tabela de perfis/claims administrativos e ajuste as políticas.
+- Para pontuação totalmente confiável, mova o cálculo para SQL/RPC ou Edge Function.

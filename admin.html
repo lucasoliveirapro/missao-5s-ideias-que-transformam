@@ -4,106 +4,78 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b1f3a" />
-    <meta name="robots" content="noindex,nofollow" />
-    <title>Admin | Missão 5S</title>
-    <link rel="icon" href="/assets/images/logo-placeholder.svg" type="image/svg+xml" />
+    <title>Admin — Missão 5S</title>
     <link rel="stylesheet" href="/styles/admin.css" />
   </head>
   <body>
-    <main class="admin-app">
-      <section class="admin-header" aria-labelledby="admin-title">
-        <div>
+    <main class="admin-shell">
+      <section id="admin-login-panel" class="login-panel">
+        <div class="login-card">
           <p class="eyebrow">Painel administrativo</p>
-          <h1 id="admin-title">Missão 5S: Ideias que Transformam</h1>
+          <h1>Missão 5S</h1>
+          <p>Entre com um usuário criado no Supabase Auth.</p>
+          <form id="admin-login-form" class="admin-form" autocomplete="off">
+            <label>
+              E-mail
+              <input name="email" type="email" autocomplete="username" required />
+            </label>
+            <label>
+              Senha
+              <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <p id="admin-login-error" class="form-error" role="alert"></p>
+            <button class="primary-button" type="submit">Entrar</button>
+          </form>
         </div>
-        <button id="logout-button" class="ghost-button" type="button" hidden>Sair</button>
       </section>
 
-      <section id="config-warning" class="admin-warning" hidden>
-        Firebase ainda não configurado. Configure o arquivo src/firebase.js antes de usar o painel administrativo.
-      </section>
+      <section id="admin-app-panel" class="admin-panel" hidden>
+        <header class="admin-topbar">
+          <div>
+            <p class="eyebrow">Administração do evento</p>
+            <h1>Missão 5S: Ideias que Transformam</h1>
+          </div>
+          <button id="admin-signout" class="ghost-button" type="button">Sair</button>
+        </header>
 
-      <section id="login-section" class="login-panel" aria-labelledby="login-title">
-        <div>
-          <p class="eyebrow">Acesso restrito</p>
-          <h2 id="login-title">Entrar com Firebase Authentication</h2>
-        </div>
-        <form id="login-form" class="login-form">
-          <label>
-            E-mail
-            <input id="admin-email" name="email" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Senha
-            <input id="admin-password" name="password" type="password" autocomplete="current-password" required />
-          </label>
-          <button class="primary-button" type="submit">Entrar</button>
-          <p id="login-error" class="form-error" role="alert"></p>
-        </form>
-      </section>
+        <div id="admin-notice" class="admin-notice" hidden></div>
 
-      <section id="admin-panel" class="admin-panel" hidden>
-        <div class="session-row">
-          <span id="admin-user"></span>
-          <span id="data-status">Aguardando dados...</span>
-        </div>
+        <section id="admin-summary" class="summary-grid" aria-label="Resumo do evento"></section>
 
-        <section id="summary-cards" class="summary-grid" aria-label="Resumo do evento"></section>
-
-        <section class="filters-panel" aria-label="Filtros administrativos">
-          <label>
-            Busca
-            <input id="admin-search" type="search" placeholder="Nome ou matrícula" />
-          </label>
-          <label>
-            Turno
-            <select id="admin-filter-turno">
-              <option value="">Todos</option>
-              <option value="1º Turno">1º Turno</option>
-              <option value="2º Turno">2º Turno</option>
-              <option value="3º Turno">3º Turno</option>
-            </select>
-          </label>
-          <label>
-            Senso
-            <select id="admin-filter-senso">
-              <option value="">Todos</option>
-              <option value="SEIRI — Utilização">SEIRI — Utilização</option>
-              <option value="SEITON — Organização">SEITON — Organização</option>
-              <option value="SEISOU — Limpeza">SEISOU — Limpeza</option>
-              <option value="SEIKETSU — Saúde">SEIKETSU — Saúde</option>
-              <option value="SHITSUKE — Disciplina">SHITSUKE — Disciplina</option>
-            </select>
-          </label>
-          <label>
-            Status
-            <select id="admin-filter-status">
-              <option value="">Todos</option>
-              <option value="Recebida">Recebida</option>
-              <option value="Em análise">Em análise</option>
-              <option value="Aprovada">Aprovada</option>
-              <option value="Implantada">Implantada</option>
-              <option value="Recusada">Recusada</option>
-            </select>
-          </label>
-        </section>
-
-        <section class="admin-actions" aria-label="Ações administrativas">
-          <button id="export-csv" class="secondary-button" type="button">Exportar CSV</button>
-          <button id="clear-event" class="danger-button" type="button">Limpar dados do evento</button>
+        <section class="admin-actions">
+          <div class="admin-filters">
+            <label>
+              Busca
+              <input id="admin-search" type="search" placeholder="Nome ou matrícula" />
+            </label>
+            <label>
+              Turno
+              <select id="admin-turno"></select>
+            </label>
+            <label>
+              Senso
+              <select id="admin-senso"></select>
+            </label>
+            <label>
+              Status
+              <select id="admin-status"></select>
+            </label>
+          </div>
+          <div class="admin-action-buttons">
+            <button id="admin-export" class="secondary-button" type="button">Exportar CSV</button>
+            <button id="admin-clear" class="danger-button" type="button">Limpar dados do evento</button>
+          </div>
         </section>
 
         <section>
-          <div class="list-header">
-            <h2>Ideias recebidas</h2>
-            <span id="ideas-count">0 ideias</span>
+          <div class="section-title">
+            <h2>Ideias lançadas</h2>
+            <span id="admin-count">0 registros</span>
           </div>
-          <div id="ideas-list" class="ideas-grid"></div>
+          <div id="admin-ideas-list" class="ideas-list"></div>
         </section>
       </section>
     </main>
-
-    <div id="toast-root" class="toast-root" aria-live="polite"></div>
     <script type="module" src="/src/admin/admin.js"></script>
   </body>
 </html>

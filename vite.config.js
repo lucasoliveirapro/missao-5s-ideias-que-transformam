@@ -8,11 +8,6 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 function assetMiddleware(command) {
   const assetsRoot = path.resolve(rootDir, "assets");
   const contentTypes = {
-    ".svg": "image/svg+xml; charset=utf-8",
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".webp": "image/webp",
     ".mp3": "audio/mpeg"
   };
 

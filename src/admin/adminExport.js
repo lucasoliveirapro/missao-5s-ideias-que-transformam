@@ -1,37 +1,28 @@
-const CSV_COLUMNS = [
-  ["nome", "nome"],
-  ["matricula", "matrícula"],
-  ["turno", "turno"],
-  ["titulo", "título"],
-  ["descricao", "descrição"],
-  ["senso", "senso"],
-  ["area", "área"],
-  ["status", "status"],
-  ["pontos", "pontos"],
-  ["fotoUrl", "fotoUrl"],
-  ["dataHora", "dataHora"]
+import { toCsvValue } from "../utils.js";
+
+const CSV_HEADERS = [
+  "nome",
+  "matricula",
+  "turno",
+  "titulo",
+  "area",
+  "descricao_local",
+  "problema_observado",
+  "sugestao_melhoria",
+  "senso",
+  "status",
+  "pontos",
+  "criado_em"
 ];
 
-function csvEscape(value) {
-  const text = String(value ?? "");
-  if (/[",\n\r;]/.test(text)) {
-    return `"${text.replaceAll('"', '""')}"`;
-  }
-  return text;
-}
-
 export function exportIdeasCsv(ideas) {
-  const rows = [
-    CSV_COLUMNS.map(([, label]) => csvEscape(label)).join(";"),
-    ...ideas.map((idea) => CSV_COLUMNS.map(([key]) => csvEscape(idea[key])).join(";"))
-  ];
-
-  const blob = new Blob([`\uFEFF${rows.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  const rows = ideas.map((idea) => CSV_HEADERS.map((header) => toCsvValue(idea[header])).join(";"));
+  const csv = [CSV_HEADERS.join(";"), ...rows].join("\n");
+  const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = `missao-5s-ideias-${date}.csv`;
+  link.download = `missao-5s-ideias-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();

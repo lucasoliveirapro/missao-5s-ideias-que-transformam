@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Medalha ouro">
-  <path d="M38 4h20l10 40H48L38 4Z" fill="#f58220"/>
-  <path d="M90 4H70L60 44h20L90 4Z" fill="#d86619"/>
-  <circle cx="64" cy="76" r="44" fill="#ffc547" stroke="#8b5a00" stroke-width="5"/>
-  <circle cx="64" cy="76" r="30" fill="#ffdb74"/>
-  <path d="M64 48 72 66l20 2-15 13 5 20-18-11-18 11 5-20-15-13 20-2 8-18Z" fill="#ffffff" opacity=".88"/>
-</svg>

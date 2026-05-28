@@ -1,9 +1,10 @@
 import {
   TURNOS,
   escapeHtml,
-  formatDateTime,
   formatNumber,
   getRankableParticipants,
+  participantIdeas,
+  participantPoints,
   sortParticipants
 } from "../utils.js";
 import { hideOverlay, showOverlay } from "./notifications.js";
@@ -109,14 +110,13 @@ function renderRankingList() {
             <span>Matrícula ${escapeHtml(participant.matricula || "-")} • ${escapeHtml(participant.turno || "-")}</span>
           </div>
           <div class="rank-metric">
-            <strong>${formatNumber(participant.totalIdeias)}</strong>
+            <strong>${formatNumber(participantIdeas(participant))}</strong>
             <span>ideias</span>
           </div>
           <div class="rank-metric">
-            <strong>${formatNumber(participant.totalPontos)}</strong>
+            <strong>${formatNumber(participantPoints(participant))}</strong>
             <span>pontos</span>
           </div>
-          <div class="rank-date">${formatDateTime(participant.ultimaParticipacao)}</div>
         </article>
       `;
     })

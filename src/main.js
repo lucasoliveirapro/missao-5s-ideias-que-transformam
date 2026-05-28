@@ -4,14 +4,14 @@ import HomeScene from "./scenes/HomeScene.js";
 import MissionScene from "./scenes/MissionScene.js";
 import RankingScene from "./scenes/RankingScene.js";
 import { setupAudioControls } from "./audio.js";
-import { isFirebaseConfigured } from "./firebase.js";
-import { FIREBASE_CONFIG_MESSAGE } from "./ui/ideas.js";
+import { isSupabaseConfigured } from "./supabase.js";
+import { SUPABASE_CONFIG_MESSAGE } from "./ui/ideas.js";
 import { setAppNotice } from "./ui/notifications.js";
 
 setupAudioControls();
 
-if (!isFirebaseConfigured()) {
-  setAppNotice(FIREBASE_CONFIG_MESSAGE);
+if (!isSupabaseConfigured()) {
+  setAppNotice(SUPABASE_CONFIG_MESSAGE);
 }
 
 const config = {

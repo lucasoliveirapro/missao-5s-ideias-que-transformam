@@ -1,244 +1,149 @@
-import { isFirebaseConfigured } from "../firebase.js";
-import { countBy, escapeHtml, formatDateTime, formatNumber, getRankableParticipants, sortParticipants } from "../utils.js";
-import { showToast } from "../ui/notifications.js";
-import { loginAdmin, logoutAdmin, watchAdminAuth } from "./adminAuth.js";
+import { isSupabaseConfigured } from "../supabase.js";
+import {
+  IDEA_STATUSES,
+  SENSOS,
+  TURNOS,
+  countBy,
+  escapeHtml,
+  formatDateTime,
+  formatNumber,
+  participantIdeas,
+  participantPoints,
+  sortParticipants
+} from "../utils.js";
+import { getCurrentSession, onAdminAuthChange, signInAdmin, signOutAdmin } from "./adminAuth.js";
+import { clearEventData, loadAdminData, updateIdeaStatus } from "./adminIdeas.js";
 import { exportIdeasCsv } from "./adminExport.js";
-import { changeIdeaStatus, clearEventData, listenAdminData } from "./adminIdeas.js";
 
-const state = {
+let state = {
+  session: null,
   ideas: [],
   participants: [],
-  unsubscribeData: null,
-  filters: {
-    search: "",
-    turno: "",
-    senso: "",
-    status: ""
-  }
+  filteredIdeas: []
 };
 
-const elements = {
-  configWarning: document.getElementById("config-warning"),
-  loginSection: document.getElementById("login-section"),
-  loginForm: document.getElementById("login-form"),
-  loginError: document.getElementById("login-error"),
-  logoutButton: document.getElementById("logout-button"),
-  adminPanel: document.getElementById("admin-panel"),
-  adminUser: document.getElementById("admin-user"),
-  dataStatus: document.getElementById("data-status"),
-  summaryCards: document.getElementById("summary-cards"),
-  ideasList: document.getElementById("ideas-list"),
-  ideasCount: document.getElementById("ideas-count"),
-  exportCsv: document.getElementById("export-csv"),
-  clearEvent: document.getElementById("clear-event"),
-  filters: {
-    search: document.getElementById("admin-search"),
-    turno: document.getElementById("admin-filter-turno"),
-    senso: document.getElementById("admin-filter-senso"),
-    status: document.getElementById("admin-filter-status")
-  }
-};
+const loginPanel = document.getElementById("admin-login-panel");
+const appPanel = document.getElementById("admin-app-panel");
+const loginForm = document.getElementById("admin-login-form");
+const loginError = document.getElementById("admin-login-error");
+const signOutButton = document.getElementById("admin-signout");
+const notice = document.getElementById("admin-notice");
+const summary = document.getElementById("admin-summary");
+const list = document.getElementById("admin-ideas-list");
+const countLabel = document.getElementById("admin-count");
+const searchInput = document.getElementById("admin-search");
+const turnoFilter = document.getElementById("admin-turno");
+const sensoFilter = document.getElementById("admin-senso");
+const statusFilter = document.getElementById("admin-status");
+const exportButton = document.getElementById("admin-export");
+const clearButton = document.getElementById("admin-clear");
 
-init();
-
-function init() {
-  if (!isFirebaseConfigured()) {
-    elements.configWarning.hidden = false;
-    elements.loginForm.querySelectorAll("input, button").forEach((element) => {
-      element.disabled = true;
-    });
-    return;
-  }
-
-  bindEvents();
-  watchAdminAuth(handleAuthState);
+function setNotice(message, type = "info") {
+  notice.hidden = !message;
+  notice.textContent = message || "";
+  notice.dataset.type = type;
 }
 
-function bindEvents() {
-  elements.loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    elements.loginError.textContent = "";
+function setLoggedIn(loggedIn) {
+  loginPanel.hidden = loggedIn;
+  appPanel.hidden = !loggedIn;
+}
 
-    const email = elements.loginForm.elements.email.value.trim();
-    const password = elements.loginForm.elements.password.value;
-    const submitButton = elements.loginForm.querySelector('[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.textContent = "Entrando...";
+function fillFilter(select, options, allLabel) {
+  select.innerHTML = [`<option value="">${allLabel}</option>`, ...options.map((option) => (
+    `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`
+  ))].join("");
+}
 
-    try {
-      await loginAdmin(email, password);
-      elements.loginForm.reset();
-    } catch {
-      elements.loginError.textContent = "Não foi possível entrar. Verifique e-mail e senha.";
-    } finally {
-      submitButton.disabled = false;
-      submitButton.textContent = "Entrar";
-    }
+function setupFilters() {
+  fillFilter(turnoFilter, TURNOS, "Todos");
+  fillFilter(sensoFilter, SENSOS, "Todos");
+  fillFilter(statusFilter, IDEA_STATUSES, "Todos");
+  [searchInput, turnoFilter, sensoFilter, statusFilter].forEach((element) => {
+    element.addEventListener("input", renderIdeas);
+    element.addEventListener("change", renderIdeas);
   });
-
-  elements.logoutButton.addEventListener("click", () => logoutAdmin());
-
-  Object.entries(elements.filters).forEach(([key, input]) => {
-    input.addEventListener("input", () => {
-      state.filters[key] = input.value;
-      renderIdeas();
-    });
-    input.addEventListener("change", () => {
-      state.filters[key] = input.value;
-      renderIdeas();
-    });
-  });
-
-  elements.exportCsv.addEventListener("click", () => {
-    exportIdeasCsv(state.ideas);
-  });
-
-  elements.clearEvent.addEventListener("click", async () => {
-    const confirmed = window.confirm("Tem certeza que deseja apagar todos os dados do evento? Essa ação não poderá ser desfeita.");
-    if (!confirmed) {
-      return;
-    }
-
-    elements.clearEvent.disabled = true;
-    elements.clearEvent.textContent = "Limpando...";
-    try {
-      const result = await clearEventData(state.ideas);
-      showToast(`Dados limpos. Fotos removidas: ${result.photosDeleted}/${result.photosAttempted}.`, result.photosFailed ? "warning" : "success");
-    } catch (error) {
-      showToast(error.message || "Não foi possível limpar os dados.", "error");
-    } finally {
-      elements.clearEvent.disabled = false;
-      elements.clearEvent.textContent = "Limpar dados do evento";
-    }
-  });
-}
-
-function handleAuthState(user) {
-  if (!user) {
-    elements.loginSection.hidden = false;
-    elements.adminPanel.hidden = true;
-    elements.logoutButton.hidden = true;
-    elements.adminUser.textContent = "";
-    stopDataListener();
-    clearAdminData();
-    return;
-  }
-
-  elements.loginSection.hidden = true;
-  elements.adminPanel.hidden = false;
-  elements.logoutButton.hidden = false;
-  elements.adminUser.textContent = `Logado como ${user.email}`;
-  startDataListener();
-}
-
-function startDataListener() {
-  stopDataListener();
-  elements.dataStatus.textContent = "Carregando dados...";
-  state.unsubscribeData = listenAdminData(
-    ({ ideas, participants }) => {
-      state.ideas = ideas;
-      state.participants = participants;
-      elements.dataStatus.textContent = `Atualizado em ${formatDateTime(new Date().toISOString())}`;
-      renderSummary();
-      renderIdeas();
-    },
-    () => {
-      showToast("Falha ao carregar dados administrativos.", "error");
-      elements.dataStatus.textContent = "Erro ao carregar dados";
-    }
-  );
-}
-
-function stopDataListener() {
-  if (state.unsubscribeData) {
-    state.unsubscribeData();
-    state.unsubscribeData = null;
-  }
-}
-
-function clearAdminData() {
-  state.ideas = [];
-  state.participants = [];
-  elements.summaryCards.innerHTML = "";
-  elements.ideasList.innerHTML = "";
-  elements.ideasCount.textContent = "0 ideias";
 }
 
 function renderSummary() {
-  const ideasByTurno = countBy(state.ideas, "turno");
-  const ideasBySenso = countBy(state.ideas, "senso");
-  const ideasByStatus = countBy(state.ideas, "status");
-  const top3 = sortParticipants(getRankableParticipants(state.participants)).slice(0, 3);
+  const totalPorTurno = countBy(state.ideas, "turno");
+  const totalPorSenso = countBy(state.ideas, "senso");
+  const totalPorStatus = countBy(state.ideas, "status");
+  const top3 = sortParticipants(state.participants).slice(0, 3);
 
-  elements.summaryCards.innerHTML = `
+  summary.innerHTML = `
     ${summaryCard("Total de ideias", formatNumber(state.ideas.length))}
-    ${summaryCard("Total de participantes", formatNumber(state.participants.length))}
-    ${summaryCard("Ideias por turno", summaryList(ideasByTurno))}
-    ${summaryCard("Ideias por senso", summaryList(ideasBySenso))}
-    ${summaryCard("Ideias por status", summaryList(ideasByStatus))}
-    ${summaryCard("Top 3", top3.length ? top3.map((item, index) => `${index + 1}º ${escapeHtml(item.nome)} — ${formatNumber(item.totalIdeias)} ideias`).join("<br>") : "Sem dados")}
+    ${summaryCard("Participantes", formatNumber(state.participants.length))}
+    ${summaryCard("Ideias por turno", mapCount(totalPorTurno))}
+    ${summaryCard("Ideias por senso", mapCount(totalPorSenso))}
+    ${summaryCard("Ideias por status", mapCount(totalPorStatus))}
+    ${summaryCard("Top 3", top3.length ? top3.map((item, index) => `${index + 1}º ${escapeHtml(item.nome)} — ${formatNumber(participantIdeas(item))} ideias`).join("<br>") : "Sem ranking")}
   `;
 }
 
-function summaryCard(title, content) {
+function summaryCard(title, value) {
   return `
     <article class="summary-card">
-      <span>${escapeHtml(title)}</span>
-      <strong>${content}</strong>
+      <span>${title}</span>
+      <strong>${value}</strong>
     </article>
   `;
 }
 
-function summaryList(data) {
-  const entries = Object.entries(data);
+function mapCount(map) {
+  const entries = Object.entries(map);
   if (!entries.length) {
     return "Sem dados";
   }
 
   return entries
-    .sort((a, b) => b[1] - a[1])
     .map(([label, total]) => `${escapeHtml(label)}: ${formatNumber(total)}`)
     .join("<br>");
 }
 
 function getFilteredIdeas() {
-  const search = state.filters.search.trim().toLowerCase();
+  const search = String(searchInput.value || "").trim().toLowerCase();
+  const turno = turnoFilter.value;
+  const senso = sensoFilter.value;
+  const status = statusFilter.value;
+
   return state.ideas.filter((idea) => {
     const matchesSearch = !search
       || String(idea.nome || "").toLowerCase().includes(search)
       || String(idea.matricula || "").includes(search);
-    const matchesTurno = !state.filters.turno || idea.turno === state.filters.turno;
-    const matchesSenso = !state.filters.senso || idea.senso === state.filters.senso;
-    const matchesStatus = !state.filters.status || idea.status === state.filters.status;
+    const matchesTurno = !turno || idea.turno === turno;
+    const matchesSenso = !senso || idea.senso === senso;
+    const matchesStatus = !status || idea.status === status;
     return matchesSearch && matchesTurno && matchesSenso && matchesStatus;
   });
 }
 
 function renderIdeas() {
-  const filtered = getFilteredIdeas();
-  elements.ideasCount.textContent = `${formatNumber(filtered.length)} ideias`;
+  state.filteredIdeas = getFilteredIdeas();
+  countLabel.textContent = `${formatNumber(state.filteredIdeas.length)} registros`;
 
-  if (!filtered.length) {
-    elements.ideasList.innerHTML = `<div class="empty-state">Nenhuma ideia encontrada.</div>`;
+  if (!state.filteredIdeas.length) {
+    list.innerHTML = `<div class="empty-state">Nenhuma ideia encontrada.</div>`;
     return;
   }
 
-  elements.ideasList.innerHTML = filtered.map(renderIdeaCard).join("");
-
-  elements.ideasList.querySelectorAll("[data-status-select]").forEach((select) => {
-    select.addEventListener("change", async (event) => {
-      const ideaId = event.target.dataset.ideaId;
-      const previous = event.target.dataset.currentStatus;
-      event.target.disabled = true;
+  list.innerHTML = state.filteredIdeas.map(renderIdeaCard).join("");
+  list.querySelectorAll("[data-status-id]").forEach((select) => {
+    select.addEventListener("change", async () => {
+      const id = select.dataset.statusId;
+      const previous = select.dataset.previous;
+      select.disabled = true;
+      setNotice("Atualizando status...", "info");
 
       try {
-        const result = await changeIdeaStatus(ideaId, event.target.value);
-        showToast(result.bonus ? `Status atualizado. Bônus aplicado: +${result.bonus} pontos.` : "Status atualizado.", "success");
+        await updateIdeaStatus(id, select.value);
+        await refreshData();
+        setNotice("Status atualizado.", "success");
       } catch (error) {
-        event.target.value = previous;
-        showToast(error.message || "Não foi possível atualizar o status.", "error");
+        select.value = previous;
+        setNotice(error.message || "Não foi possível atualizar o status.", "error");
       } finally {
-        event.target.disabled = false;
+        select.disabled = false;
       }
     });
   });
@@ -246,40 +151,117 @@ function renderIdeas() {
 
 function renderIdeaCard(idea) {
   return `
-    <article class="idea-admin-card">
-      <div class="idea-photo">
-        ${
-          idea.fotoUrl
-            ? `<img src="${escapeHtml(idea.fotoUrl)}" alt="Foto enviada para a ideia ${escapeHtml(idea.titulo || "")}" loading="lazy" />`
-            : `<span>Sem foto</span>`
-        }
-      </div>
-      <div class="idea-content">
-        <div class="idea-card-header">
-          <div>
-            <h3>${escapeHtml(idea.titulo || "Sem título")}</h3>
-            <p>${escapeHtml(idea.descricao || "")}</p>
-          </div>
-          <span class="status-chip">${escapeHtml(idea.status || "Recebida")}</span>
+    <article class="idea-card">
+      <div class="idea-card-header">
+        <div>
+          <h3>${escapeHtml(idea.titulo)}</h3>
+          <p>${escapeHtml(idea.area)} • ${escapeHtml(idea.senso)}</p>
         </div>
-        <dl class="idea-meta">
-          <div><dt>Senso</dt><dd>${escapeHtml(idea.senso || "-")}</dd></div>
-          <div><dt>Área/linha</dt><dd>${escapeHtml(idea.area || "-")}</dd></div>
-          <div><dt>Nome</dt><dd>${escapeHtml(idea.nome || "-")}</dd></div>
-          <div><dt>Matrícula</dt><dd>${escapeHtml(idea.matricula || "-")}</dd></div>
-          <div><dt>Turno</dt><dd>${escapeHtml(idea.turno || "-")}</dd></div>
-          <div><dt>Data/hora</dt><dd>${formatDateTime(idea.dataHora)}</dd></div>
-          <div><dt>Pontos</dt><dd>${formatNumber(idea.pontos)}</dd></div>
-        </dl>
-        <label class="status-control">
-          Alterar status
-          <select data-status-select data-idea-id="${escapeHtml(idea.id)}" data-current-status="${escapeHtml(idea.status || "Recebida")}">
-            ${["Recebida", "Em análise", "Aprovada", "Implantada", "Recusada"]
-              .map((status) => `<option value="${escapeHtml(status)}" ${status === idea.status ? "selected" : ""}>${escapeHtml(status)}</option>`)
-              .join("")}
-          </select>
-        </label>
+        <div class="status-control">
+          <label>
+            Status
+            <select data-status-id="${escapeHtml(idea.id)}" data-previous="${escapeHtml(idea.status)}">
+              ${IDEA_STATUSES.map((status) => (
+                `<option value="${escapeHtml(status)}" ${status === idea.status ? "selected" : ""}>${escapeHtml(status)}</option>`
+              )).join("")}
+            </select>
+          </label>
+        </div>
+      </div>
+      <dl class="idea-details">
+        <div><dt>Local</dt><dd>${escapeHtml(idea.descricao_local)}</dd></div>
+        <div><dt>Problema</dt><dd>${escapeHtml(idea.problema_observado)}</dd></div>
+        <div><dt>Sugestão</dt><dd>${escapeHtml(idea.sugestao_melhoria)}</dd></div>
+      </dl>
+      <div class="idea-meta">
+        <span>${escapeHtml(idea.nome)} — Matrícula ${escapeHtml(idea.matricula)}</span>
+        <span>${escapeHtml(idea.turno)}</span>
+        <span>${formatDateTime(idea.criado_em)}</span>
+        <strong>${formatNumber(idea.pontos)} pts</strong>
       </div>
     </article>
   `;
 }
+
+async function refreshData() {
+  const data = await loadAdminData();
+  state = {
+    ...state,
+    ideas: data.ideas,
+    participants: data.participants
+  };
+  renderSummary();
+  renderIdeas();
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  loginError.textContent = "";
+  const formData = new FormData(loginForm);
+  const button = loginForm.querySelector("button");
+  button.disabled = true;
+  button.textContent = "Entrando...";
+
+  try {
+    state.session = await signInAdmin(formData.get("email"), formData.get("password"));
+    setLoggedIn(true);
+    await refreshData();
+  } catch (error) {
+    loginError.textContent = error.message || "Não foi possível entrar.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Entrar";
+  }
+}
+
+async function bootAdmin() {
+  setupFilters();
+
+  if (!isSupabaseConfigured()) {
+    loginError.textContent = "Supabase ainda não configurado. Configure URL e ANON KEY em src/supabase.js.";
+    loginForm.querySelector("button").disabled = true;
+    setLoggedIn(false);
+    return;
+  }
+
+  loginForm.addEventListener("submit", handleLogin);
+  signOutButton.addEventListener("click", async () => {
+    await signOutAdmin();
+    setLoggedIn(false);
+  });
+  exportButton.addEventListener("click", () => exportIdeasCsv(state.ideas));
+  clearButton.addEventListener("click", async () => {
+    const confirmed = window.confirm("Tem certeza que deseja apagar todos os dados do evento? Essa ação não poderá ser desfeita.");
+    if (!confirmed) return;
+
+    clearButton.disabled = true;
+    setNotice("Limpando dados do evento...", "info");
+    try {
+      await clearEventData();
+      await refreshData();
+      setNotice("Dados do evento apagados.", "success");
+    } catch (error) {
+      setNotice(error.message || "Não foi possível limpar os dados.", "error");
+    } finally {
+      clearButton.disabled = false;
+    }
+  });
+
+  onAdminAuthChange(async (session) => {
+    state.session = session;
+    setLoggedIn(Boolean(session));
+    if (session) {
+      await refreshData();
+    }
+  });
+
+  state.session = await getCurrentSession();
+  setLoggedIn(Boolean(state.session));
+  if (state.session) {
+    await refreshData();
+  }
+}
+
+bootAdmin().catch((error) => {
+  loginError.textContent = error.message || "Erro ao iniciar o painel.";
+});

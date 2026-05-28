@@ -5,6 +5,8 @@ import {
   findParticipantPosition,
   formatNumber,
   getStoredParticipant,
+  participantIdeas,
+  participantPoints,
   shouldPauseCanvasResize
 } from "../utils.js";
 import { showIdeaForm, showRegistrationForm } from "../ui/forms.js";
@@ -68,8 +70,8 @@ export default class MissionScene extends Phaser.Scene {
             matricula: current.matricula,
             turno: current.turno
           };
-          this.stats.totalIdeias = Number(current.totalIdeias || 0);
-          this.stats.totalPontos = Number(current.totalPontos || 0);
+          this.stats.totalIdeias = participantIdeas(current);
+          this.stats.totalPontos = participantPoints(current);
         }
         this.stats.rankPosition = findParticipantPosition(participants, this.participant.matricula);
         this.updateStatsTexts();
@@ -154,7 +156,7 @@ export default class MissionScene extends Phaser.Scene {
     const statWidth = isMobile ? Math.min(178, (contentWidth - 12) / 3) : Math.min(210, (contentWidth - 36) / 3);
     const gap = isMobile ? 6 : 18;
     const labels = [
-      ["ideiasText", "Ideias", this.stats.totalIdeias],
+      ["ideasText", "Ideias", this.stats.totalIdeias],
       ["pointsText", "Pontos", this.stats.totalPontos],
       ["rankText", "Posição", this.stats.rankPosition ? `${this.stats.rankPosition}º` : "-"]
     ];
@@ -183,10 +185,7 @@ export default class MissionScene extends Phaser.Scene {
   }
 
   updateStatsTexts() {
-    if (!this.statTexts) {
-      return;
-    }
-
+    if (!this.statTexts) return;
     this.statTexts.ideasText?.setText(formatNumber(this.stats.totalIdeias));
     this.statTexts.pointsText?.setText(formatNumber(this.stats.totalPontos));
     this.statTexts.rankText?.setText(this.stats.rankPosition ? `${this.stats.rankPosition}º` : "-");
@@ -196,8 +195,8 @@ export default class MissionScene extends Phaser.Scene {
     showIdeaForm({
       participant: this.participant,
       onSuccess: (result, action) => {
-        this.stats.totalIdeias = result.participant.totalIdeias;
-        this.stats.totalPontos = result.participant.totalPontos;
+        this.stats.totalIdeias = participantIdeas(result.participant);
+        this.stats.totalPontos = participantPoints(result.participant);
         this.stats.rankPosition = result.rankPosition;
         this.updateStatsTexts();
 
@@ -215,13 +214,12 @@ export default class MissionScene extends Phaser.Scene {
 
   drawBackground(width, height) {
     this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
-    if (this.textures.exists("factory-bg")) {
-      const bg = this.add.image(width / 2, height / 2, "factory-bg");
-      bg.setDisplaySize(width, height);
-      bg.setAlpha(0.22);
+    this.add.rectangle(width / 2, 0, width, Math.max(160, height * 0.22), COLORS.steel, 0.32).setOrigin(0.5, 0);
+
+    for (let index = 0; index < 9; index += 1) {
+      this.add.rectangle(width / 2, height * 0.18 + index * 72, width * 0.96, 2, COLORS.white, 0.035);
     }
 
-    this.add.rectangle(width / 2, 0, width, Math.max(160, height * 0.22), COLORS.steel, 0.32).setOrigin(0.5, 0);
     this.add.circle(width * 0.76, height * 0.2, 92, COLORS.orange, 0.08);
     this.add.circle(width * 0.18, height * 0.72, 122, COLORS.green, 0.08);
 
@@ -237,10 +235,8 @@ export default class MissionScene extends Phaser.Scene {
   }
 
   createButton(x, y, width, height, label, color, callback) {
-    const rect = this.add
-      .rectangle(x, y, width, height, color, 1)
-      .setStrokeStyle(2, COLORS.white, 0.14);
-    const text = this.add
+    const rect = this.add.rectangle(x, y, width, height, color, 1).setStrokeStyle(2, COLORS.white, 0.14);
+    this.add
       .text(x, y, label, {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "17px",
@@ -253,15 +249,10 @@ export default class MissionScene extends Phaser.Scene {
 
     zone.on("pointerover", () => rect.setAlpha(0.86));
     zone.on("pointerout", () => {
-      if (!locked) {
-        rect.setAlpha(1);
-      }
+      if (!locked) rect.setAlpha(1);
     });
     zone.on("pointerup", () => {
-      if (locked || document.body.classList.contains("has-active-overlay")) {
-        return;
-      }
-
+      if (locked || document.body.classList.contains("has-active-overlay")) return;
       locked = true;
       rect.setAlpha(0.72);
       this.time.delayedCall(20, () => {
@@ -274,6 +265,6 @@ export default class MissionScene extends Phaser.Scene {
         });
       });
     });
-    return { rect, text, zone };
+    return { rect, zone };
   }
 }

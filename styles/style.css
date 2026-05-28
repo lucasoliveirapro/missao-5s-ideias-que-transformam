@@ -172,12 +172,6 @@ button {
   outline: none;
 }
 
-.stacked-form input[type="file"] {
-  min-height: 52px;
-  padding: 9px 10px;
-  line-height: 1.4;
-}
-
 .stacked-form textarea {
   resize: vertical;
   min-height: 112px;

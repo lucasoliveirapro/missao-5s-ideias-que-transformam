@@ -12,7 +12,6 @@ export const IDEA_STATUSES = ["Recebida", "Em análise", "Aprovada", "Implantada
 
 export const POINTS = {
   idea: 10,
-  photo: 5,
   approved: 20,
   implemented: 50
 };
@@ -52,33 +51,36 @@ export function validateParticipant({ nome, matricula, turno }) {
   };
 }
 
-export function validateIdea({ titulo, descricao, senso, area, foto }) {
+export function validateIdea({
+  titulo,
+  area,
+  descricao_local,
+  problema_observado,
+  sugestao_melhoria,
+  senso
+}) {
   if (!String(titulo || "").trim()) {
     return { valid: false, message: "Informe o título da ideia." };
-  }
-
-  if (!String(descricao || "").trim()) {
-    return { valid: false, message: "Informe a descrição da melhoria." };
-  }
-
-  if (!SENSOS.includes(senso)) {
-    return { valid: false, message: "Selecione o senso relacionado." };
   }
 
   if (!String(area || "").trim()) {
     return { valid: false, message: "Informe a área ou linha." };
   }
 
-  if (!foto) {
-    return { valid: false, message: "Envie uma foto do local." };
+  if (String(descricao_local || "").trim().length < 15) {
+    return { valid: false, message: "Descreva o local com pelo menos 15 caracteres." };
   }
 
-  if (!foto.type || !foto.type.startsWith("image/")) {
-    return { valid: false, message: "A foto deve ser uma imagem válida." };
+  if (String(problema_observado || "").trim().length < 15) {
+    return { valid: false, message: "Explique o problema observado com pelo menos 15 caracteres." };
   }
 
-  if (foto.size > 5 * 1024 * 1024) {
-    return { valid: false, message: "A foto deve ter no máximo 5MB." };
+  if (String(sugestao_melhoria || "").trim().length < 15) {
+    return { valid: false, message: "Descreva a sugestão de melhoria com pelo menos 15 caracteres." };
+  }
+
+  if (!SENSOS.includes(senso)) {
+    return { valid: false, message: "Selecione o senso relacionado." };
   }
 
   return { valid: true };
@@ -128,22 +130,30 @@ export function formatNumber(value) {
   return Number(value || 0).toLocaleString("pt-BR");
 }
 
+export function participantIdeas(participant) {
+  return Number(participant?.total_ideias || 0);
+}
+
+export function participantPoints(participant) {
+  return Number(participant?.total_pontos || 0);
+}
+
 export function sortParticipants(participants) {
   return [...participants].sort((a, b) => {
-    const ideasDiff = Number(b.totalIdeias || 0) - Number(a.totalIdeias || 0);
+    const ideasDiff = participantIdeas(b) - participantIdeas(a);
     if (ideasDiff !== 0) return ideasDiff;
 
-    const pointsDiff = Number(b.totalPontos || 0) - Number(a.totalPontos || 0);
+    const pointsDiff = participantPoints(b) - participantPoints(a);
     if (pointsDiff !== 0) return pointsDiff;
 
-    const aDate = Date.parse(a.ultimaParticipacao || "") || Number.POSITIVE_INFINITY;
-    const bDate = Date.parse(b.ultimaParticipacao || "") || Number.POSITIVE_INFINITY;
+    const aDate = Date.parse(a.ultima_participacao || "") || Number.POSITIVE_INFINITY;
+    const bDate = Date.parse(b.ultima_participacao || "") || Number.POSITIVE_INFINITY;
     return aDate - bDate;
   });
 }
 
 export function getRankableParticipants(participants) {
-  return participants.filter((participant) => Number(participant.totalIdeias || 0) > 0);
+  return participants.filter((participant) => participantIdeas(participant) > 0);
 }
 
 export function findParticipantPosition(participants, matricula) {
@@ -167,22 +177,17 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-export function makeSafeFileName(fileName) {
-  const fallback = "foto-local.jpg";
-  return String(fileName || fallback)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 90) || fallback;
-}
-
 export function countBy(items, key) {
   return items.reduce((acc, item) => {
     const label = item[key] || "Não informado";
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
+}
+
+export function toCsvValue(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
 }
 
 export function shouldPauseCanvasResize() {
