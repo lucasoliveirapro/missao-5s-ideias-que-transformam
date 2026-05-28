@@ -30,7 +30,13 @@ function assetMiddleware(command) {
         }
 
         if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+          const stat = fs.statSync(targetPath);
           res.setHeader("Content-Type", contentTypes[path.extname(targetPath).toLowerCase()] || "application/octet-stream");
+          res.setHeader("Content-Length", String(stat.size));
+          if (req.method === "HEAD") {
+            res.end();
+            return;
+          }
           fs.createReadStream(targetPath).pipe(res);
           return;
         }

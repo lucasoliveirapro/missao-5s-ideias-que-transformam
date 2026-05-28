@@ -221,7 +221,7 @@ Não há link para `admin.html` dentro da tela pública.
 
 ## 16. Como adicionar áudios
 
-Substitua os placeholders em [assets/audio](assets/audio):
+Adicione arquivos MP3 reais em [assets/audio](assets/audio):
 
 - `musica-fundo.mp3`
 - `ideia-enviada.mp3`
@@ -229,7 +229,7 @@ Substitua os placeholders em [assets/audio](assets/audio):
 - `top3.mp3`
 - `continue-participando.mp3`
 
-O áudio só inicia após interação do usuário. Se um arquivo estiver ausente ou inválido, o app continua funcionando.
+O audio so inicia apos interacao do usuario. Se um arquivo estiver ausente, vazio ou invalido, o app continua funcionando e nao tenta tocar o MP3 corrompido.
 
 ## 17. Como testar envio de ideia
 

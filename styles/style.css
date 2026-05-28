@@ -466,6 +466,15 @@ button {
   width: 92px;
 }
 
+.sound-status {
+  min-width: 0;
+  max-width: 130px;
+  color: #ffd8b7;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
 @media (max-width: 720px) {
   .modal-backdrop {
     place-items: stretch;
@@ -564,6 +573,11 @@ button {
     top: auto;
     bottom: max(10px, env(safe-area-inset-bottom));
     justify-content: space-between;
+  }
+
+  .sound-status {
+    max-width: 92px;
+    text-align: right;
   }
 
   .toast-root {

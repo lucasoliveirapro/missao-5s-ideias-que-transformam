@@ -187,7 +187,10 @@ export function countBy(items, key) {
 
 export function shouldPauseCanvasResize() {
   const overlayRoot = document.getElementById("overlay-root");
-  const overlayOpen = Boolean(overlayRoot?.classList.contains("active") && overlayRoot.innerHTML.trim());
+  const overlayOpen = Boolean(
+    document.body.classList.contains("has-active-overlay")
+      || (overlayRoot?.classList.contains("active") && overlayRoot.innerHTML.trim())
+  );
   const activeElement = document.activeElement;
   const formFieldFocused = Boolean(activeElement?.matches?.("input, textarea, select"));
   return overlayOpen || formFieldFocused;
