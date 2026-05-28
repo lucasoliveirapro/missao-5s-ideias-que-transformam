@@ -95,7 +95,7 @@ export default class HomeScene extends Phaser.Scene {
     });
 
     this.add
-      .text(centerX, height - 34, "Funilaria • WCM • 5S", {
+      .text(centerX, height - 34, "SIS • Funilaria • 5S", {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "14px",
         color: "#9fb2c7",
