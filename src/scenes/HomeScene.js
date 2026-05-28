@@ -1,0 +1,166 @@
+import * as Phaser from "phaser";
+import { audioManager } from "../audio.js";
+import { getStoredParticipant, shouldPauseCanvasResize } from "../utils.js";
+import { showRegistrationForm } from "../ui/forms.js";
+
+const COLORS = {
+  navy: 0x0b1f3a,
+  steel: 0x28445f,
+  white: 0xffffff,
+  orange: 0xf58220,
+  cyan: 0x69d2ff
+};
+
+export default class HomeScene extends Phaser.Scene {
+  constructor() {
+    super("HomeScene");
+  }
+
+  create() {
+    this.resizeHandler = () => {
+      if (!shouldPauseCanvasResize()) {
+        this.render();
+      }
+    };
+    this.overlayClosedHandler = () => this.render();
+    this.scale.on("resize", this.resizeHandler);
+    window.addEventListener("missao5s:overlay-closed", this.overlayClosedHandler);
+    this.events.once("shutdown", () => {
+      this.scale.off("resize", this.resizeHandler);
+      window.removeEventListener("missao5s:overlay-closed", this.overlayClosedHandler);
+    });
+    this.render();
+  }
+
+  render() {
+    this.children.removeAll(true);
+    const { width, height } = this.scale;
+    this.drawBackground(width, height);
+
+    const centerX = width / 2;
+    const top = Math.max(72, height * 0.13);
+
+    if (this.textures.exists("logo-5s")) {
+      const logo = this.add.image(centerX, top - 20, "logo-5s");
+      logo.setDisplaySize(92, 92);
+      logo.setAlpha(0.95);
+    }
+
+    this.add
+      .text(centerX, top + 68, "Missão 5S", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(64, Math.max(42, width * 0.08))}px`,
+        fontStyle: "700",
+        color: "#ffffff",
+        align: "center"
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(centerX, top + 126, "Ideias que Transformam", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(34, Math.max(22, width * 0.045))}px`,
+        fontStyle: "700",
+        color: "#f58220",
+        align: "center"
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(centerX, top + 176, "Lance melhorias, envie foto do local e suba no ranking.", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(21, Math.max(16, width * 0.026))}px`,
+        color: "#dbe8f6",
+        align: "center",
+        wordWrap: { width: Math.min(720, width - 44) }
+      })
+      .setOrigin(0.5);
+
+    this.createAccentLine(centerX, top + 216, Math.min(360, width - 72));
+
+    const buttonWidth = Math.min(330, width - 48);
+    const buttonY = Math.min(height - 160, top + 300);
+    this.createButton(centerX, buttonY, buttonWidth, 58, "Entrar na Missão", COLORS.orange, () => {
+      audioManager.unlock();
+      const participant = getStoredParticipant();
+      if (participant) {
+        this.scene.start("MissionScene");
+        return;
+      }
+
+      showRegistrationForm({
+        onSuccess: () => this.scene.start("MissionScene")
+      });
+    });
+
+    this.createButton(centerX, buttonY + 76, buttonWidth, 58, "Ver Ranking", COLORS.steel, () => {
+      audioManager.unlock();
+      this.scene.start("RankingScene", { from: "HomeScene" });
+    });
+
+    this.add
+      .text(centerX, height - 34, "Funilaria • WCM • 5S", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: "14px",
+        color: "#9fb2c7",
+        align: "center"
+      })
+      .setOrigin(0.5);
+  }
+
+  drawBackground(width, height) {
+    this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
+
+    if (this.textures.exists("factory-bg")) {
+      const bg = this.add.image(width / 2, height / 2, "factory-bg");
+      bg.setDisplaySize(width, height);
+      bg.setAlpha(0.28);
+    }
+
+    for (let index = 0; index < 8; index += 1) {
+      const y = height * 0.18 + index * 72;
+      const alpha = 0.04 + index * 0.006;
+      this.add.rectangle(width / 2, y, width * 0.96, 2, COLORS.white, alpha);
+    }
+
+    const beam = this.add.rectangle(width * 0.18, height * 0.52, 14, height * 0.9, COLORS.orange, 0.28);
+    beam.setAngle(-18);
+    this.tweens.add({
+      targets: beam,
+      alpha: { from: 0.18, to: 0.42 },
+      duration: 1800,
+      yoyo: true,
+      repeat: -1
+    });
+
+    this.add.circle(width * 0.82, height * 0.24, 110, COLORS.cyan, 0.08);
+    this.add.circle(width * 0.22, height * 0.72, 130, COLORS.orange, 0.07);
+  }
+
+  createAccentLine(x, y, width) {
+    this.add.rectangle(x, y, width, 4, COLORS.orange, 0.95);
+    this.add.rectangle(x, y + 8, width * 0.62, 2, COLORS.cyan, 0.85);
+  }
+
+  createButton(x, y, width, height, label, color, callback) {
+    const container = this.add.container(x, y);
+    const rect = this.add
+      .rectangle(0, 0, width, height, color, 1)
+      .setStrokeStyle(2, COLORS.white, 0.16)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add
+      .text(0, 0, label, {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: "18px",
+        fontStyle: "700",
+        color: "#ffffff"
+      })
+      .setOrigin(0.5);
+
+    container.add([rect, text]);
+    rect.on("pointerover", () => rect.setAlpha(0.86));
+    rect.on("pointerout", () => rect.setAlpha(1));
+    rect.on("pointerdown", callback);
+    return container;
+  }
+}

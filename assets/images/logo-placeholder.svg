@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Escudo Missão 5S</title>
+  <desc id="desc">Escudo com símbolo 5S para campanha de melhoria contínua.</desc>
+  <defs>
+    <linearGradient id="g" x1="35" y1="24" x2="204" y2="218" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#13365c"/>
+      <stop offset="1" stop-color="#0b1f3a"/>
+    </linearGradient>
+  </defs>
+  <path d="M120 15 205 48v65c0 54-34 95-85 112-51-17-85-58-85-112V48l85-33Z" fill="url(#g)" stroke="#f58220" stroke-width="8"/>
+  <path d="M66 82h108" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M78 119h84" stroke="#69d2ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M92 156h56" stroke="#f58220" stroke-width="10" stroke-linecap="round"/>
+  <text x="120" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="800" fill="#ffffff">5S</text>
+  <circle cx="181" cy="63" r="14" fill="#f58220"/>
+</svg>

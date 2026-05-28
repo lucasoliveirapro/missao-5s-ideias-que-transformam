@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Medalha bronze">
+  <path d="M38 4h20l10 40H48L38 4Z" fill="#c9814a"/>
+  <path d="M90 4H70L60 44h20L90 4Z" fill="#9d5f31"/>
+  <circle cx="64" cy="76" r="44" fill="#c9814a" stroke="#683915" stroke-width="5"/>
+  <circle cx="64" cy="76" r="30" fill="#e0a06e"/>
+  <path d="M64 48 72 66l20 2-15 13 5 20-18-11-18 11 5-20-15-13 20-2 8-18Z" fill="#ffffff" opacity=".78"/>
+</svg>

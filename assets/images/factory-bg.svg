@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Fundo industrial</title>
+  <desc id="desc">Fundo sutil de funilaria industrial com linhas, estruturas e faixas de segurança.</desc>
+  <rect width="1600" height="900" fill="#0b1f3a"/>
+  <g opacity=".32">
+    <path d="M0 680h1600v220H0z" fill="#102c4a"/>
+    <path d="M0 660h1600" stroke="#7f95ad" stroke-width="4"/>
+    <path d="M0 736h1600M0 812h1600" stroke="#28445f" stroke-width="3"/>
+  </g>
+  <g opacity=".26" stroke="#9fb2c7" stroke-width="5" fill="none">
+    <path d="M125 170h320v490H125zM506 220h220v440H506zM790 135h385v525H790zM1234 250h235v410h-235z"/>
+    <path d="M125 305h320M125 455h320M506 360h220M790 300h385M790 486h385M1234 410h235"/>
+    <path d="M194 170v490M297 170v490M594 220v440M905 135v525M1032 135v525M1320 250v410"/>
+  </g>
+  <g opacity=".42">
+    <path d="M0 690 210 900h-92L0 782zM190 690l210 210h-92L98 690zM380 690l210 210h-92L288 690zM570 690l210 210h-92L478 690zM760 690l210 210h-92L668 690zM950 690l210 210h-92L858 690zM1140 690l210 210h-92l-210-210zM1330 690l210 210h-92l-210-210z" fill="#f58220"/>
+  </g>
+  <g opacity=".17" fill="#69d2ff">
+    <circle cx="1350" cy="156" r="120"/>
+    <circle cx="248" cy="760" r="160"/>
+  </g>
+  <g opacity=".18" stroke="#ffffff" stroke-width="2">
+    <path d="M0 90h1600M0 180h1600M0 270h1600M0 360h1600M0 450h1600"/>
+    <path d="M120 0v900M360 0v900M600 0v900M840 0v900M1080 0v900M1320 0v900"/>
+  </g>
+</svg>
