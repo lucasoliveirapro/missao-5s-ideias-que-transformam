@@ -56,6 +56,10 @@ class AudioManager {
     this.trackStatus = new Map();
     this.statusElement = null;
     this.toggleElement = null;
+    this.fallbackContext = null;
+    this.fallbackGain = null;
+    this.fallbackNodes = [];
+    this.usingFallbackBackground = false;
   }
 
   setStatusElement(element) {
@@ -185,6 +189,7 @@ class AudioManager {
     this.instances.forEach((audio) => {
       audio.volume = this.volume;
     });
+    this.updateFallbackVolume();
   }
 
   async startBackgroundOnLoad(key = BACKGROUND_KEY) {
@@ -198,12 +203,13 @@ class AudioManager {
       return;
     }
 
-    const audio = await this.getAudio(key);
+    const audio = await this.getAudio(key, { silentMissing: key === BACKGROUND_KEY });
     if (!audio) {
-      this.backgroundPlaying = false;
+      await this.startFallbackBackground({ fromAutoplay });
       return;
     }
 
+    this.stopFallbackBackground();
     audio.loop = true;
     audio.volume = this.volume;
 
@@ -233,6 +239,7 @@ class AudioManager {
     }
     this.backgroundPlaying = false;
     this.backgroundKey = BACKGROUND_KEY;
+    this.stopFallbackBackground();
   }
 
   async playEffect(key) {
@@ -260,6 +267,86 @@ class AudioManager {
       audio.currentTime = 0;
     });
     this.backgroundPlaying = false;
+    this.stopFallbackBackground();
+  }
+
+  createFallbackBackground() {
+    if (this.fallbackContext) {
+      return this.fallbackContext;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    const context = new AudioContextClass();
+    const masterGain = context.createGain();
+    masterGain.connect(context.destination);
+    this.fallbackContext = context;
+    this.fallbackGain = masterGain;
+    this.updateFallbackVolume();
+
+    [196, 246.94, 329.63].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const toneGain = context.createGain();
+      oscillator.type = index === 0 ? "sine" : "triangle";
+      oscillator.frequency.value = frequency;
+      toneGain.gain.value = index === 0 ? 0.16 : 0.06;
+      oscillator.connect(toneGain);
+      toneGain.connect(masterGain);
+      oscillator.start();
+      this.fallbackNodes.push(oscillator, toneGain);
+    });
+
+    return context;
+  }
+
+  updateFallbackVolume() {
+    if (!this.fallbackGain || !this.fallbackContext) {
+      return;
+    }
+
+    const targetVolume = this.enabled ? this.volume * 0.16 : 0;
+    this.fallbackGain.gain.setTargetAtTime(targetVolume, this.fallbackContext.currentTime, 0.04);
+  }
+
+  async startFallbackBackground({ fromAutoplay = false } = {}) {
+    const context = this.createFallbackBackground();
+    if (!context) {
+      this.backgroundPlaying = false;
+      this.updateStatus("Adicione musica-fundo.mp3");
+      return;
+    }
+
+    try {
+      if (context.state !== "running") {
+        await context.resume();
+      }
+
+      if (context.state !== "running") {
+        throw new Error("Audio context blocked");
+      }
+
+      this.usingFallbackBackground = true;
+      this.backgroundPlaying = true;
+      this.unlocked = true;
+      this.updateFallbackVolume();
+      this.updateStatus("");
+    } catch {
+      this.backgroundPlaying = false;
+      this.unlocked = false;
+      if (fromAutoplay) {
+        this.updateStatus("Clique na tela para ativar o som");
+      }
+    }
+  }
+
+  stopFallbackBackground() {
+    this.usingFallbackBackground = false;
+    if (this.fallbackContext?.state === "running") {
+      this.fallbackContext.suspend();
+    }
   }
 }
 
