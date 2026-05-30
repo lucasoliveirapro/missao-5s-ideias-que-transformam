@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
 import { audioManager } from "../audio.js";
 import {
+  findParticipantPosition,
   formatNumber,
   getRankableParticipants,
   getStoredParticipant,
@@ -10,17 +11,19 @@ import {
 } from "../utils.js";
 import { observeParticipants } from "../ui/ideas.js";
 import { closeRankingPanel, showRankingPanel, updateRankingPanel } from "../ui/ranking.js";
-import { showToast } from "../ui/notifications.js";
+import { showToast, triggerConfetti } from "../ui/notifications.js";
 
 const COLORS = {
-  navy: 0x0b1f3a,
+  navy: 0x08213f,
   panel: 0x102c4a,
-  steel: 0x28445f,
+  field: 0x0f7a3b,
+  steel: 0x2f4357,
   white: 0xffffff,
   orange: 0xf58220,
-  gold: 0xffc547,
+  gold: 0xf4c430,
   silver: 0xc9d3df,
-  bronze: 0xc9814a
+  bronze: 0xc9814a,
+  cyan: 0x69d2ff
 };
 
 export default class RankingScene extends Phaser.Scene {
@@ -30,6 +33,7 @@ export default class RankingScene extends Phaser.Scene {
 
   init(data = {}) {
     this.fromScene = data.from || "HomeScene";
+    this.top3Celebrated = false;
   }
 
   create() {
@@ -65,6 +69,7 @@ export default class RankingScene extends Phaser.Scene {
         this.participants = getRankableParticipants(participants);
         this.renderTop3();
         updateRankingPanel(participants);
+        this.celebrateCurrentParticipant(participants);
       },
       () => showToast("Não foi possível carregar o ranking.", "error")
     );
@@ -74,20 +79,26 @@ export default class RankingScene extends Phaser.Scene {
     this.topGroup = null;
     this.children.removeAll(true);
     const { width, height } = this.scale;
-    this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
-    this.add.rectangle(width / 2, 0, width, Math.max(150, height * 0.22), COLORS.steel, 0.3).setOrigin(0.5, 0);
-
-    for (let index = 0; index < 8; index += 1) {
-      this.add.rectangle(width / 2, height * 0.14 + index * 72, width * 0.96, 2, COLORS.white, 0.035);
-    }
+    this.drawBackground(width, height);
 
     const titleY = this.getTitleY(width, height);
+    this.drawLogo(width);
     this.add
-      .text(width / 2, titleY, "Top 3 — Quem mais lançou ideias", {
+      .text(width / 2, titleY, "TABELA DA COPA 5S", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(34, Math.max(22, width * 0.04))}px`,
-        fontStyle: "700",
+        fontSize: `${Math.min(36, Math.max(23, width * 0.045))}px`,
+        fontStyle: "900",
         color: "#ffffff",
+        align: "center"
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(width / 2, titleY + 38, "Artilheiros de Ideias", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(22, Math.max(16, width * 0.029))}px`,
+        fontStyle: "900",
+        color: "#f4c430",
         align: "center"
       })
       .setOrigin(0.5);
@@ -98,7 +109,7 @@ export default class RankingScene extends Phaser.Scene {
   getTitleY(width, height) {
     const isMobile = width < 700;
     const visibleTopHeight = height * (isMobile ? 0.46 : 0.54);
-    return Math.max(isMobile ? 52 : 42, Math.min(72, visibleTopHeight * 0.18));
+    return Math.max(isMobile ? 52 : 44, Math.min(76, visibleTopHeight * 0.16));
   }
 
   renderTop3() {
@@ -116,11 +127,11 @@ export default class RankingScene extends Phaser.Scene {
     const visibleTopHeight = height * (isMobile ? 0.46 : 0.54);
     const cardWidth = isMobile ? Math.min(190, (width - 36) / 3) : Math.min(260, (width - 80) / 3);
     const cardHeight = isMobile
-      ? Math.min(140, Math.max(102, visibleTopHeight - titleY - 48))
-      : Math.min(168, Math.max(96, visibleTopHeight - titleY - 54));
+      ? Math.min(136, Math.max(102, visibleTopHeight - titleY - 92))
+      : Math.min(168, Math.max(96, visibleTopHeight - titleY - 96));
     const gap = isMobile ? 8 : 22;
     const startX = width / 2 - cardWidth - gap;
-    const y = titleY + cardHeight / 2 + (isMobile ? 56 : 48);
+    const y = titleY + 74 + cardHeight / 2;
     const colors = [COLORS.gold, COLORS.silver, COLORS.bronze];
     const slots = [
       { rankIndex: 1, slotIndex: 0 },
@@ -132,22 +143,25 @@ export default class RankingScene extends Phaser.Scene {
       const participant = top3[rankIndex];
       const isFirstPlace = rankIndex === 0;
       const x = startX + slotIndex * (cardWidth + gap);
-      const cardY = y + (isFirstPlace ? -8 : 8);
-      const currentCardHeight = cardHeight + (isFirstPlace ? 16 : 0);
+      const cardY = y + (isFirstPlace ? -8 : 10);
+      const currentCardHeight = cardHeight + (isFirstPlace ? 20 : 0);
       const color = colors[rankIndex];
-      group.add(this.add.rectangle(x, cardY, cardWidth, currentCardHeight, COLORS.panel, 0.94).setStrokeStyle(2, color, 0.72));
+      group.add(this.add.rectangle(x, cardY, cardWidth, currentCardHeight, COLORS.panel, 0.94).setStrokeStyle(2, color, 0.78));
 
-      this.drawMedal(group, x, cardY - currentCardHeight / 2 + 34, rankIndex + 1, color, isFirstPlace, isMobile);
+      if (isFirstPlace) {
+        this.drawSmallTrophy(group, x, cardY - currentCardHeight / 2 + 18, isMobile ? 20 : 24);
+      }
+      this.drawMedal(group, x, cardY - currentCardHeight / 2 + (isFirstPlace ? 48 : 34), rankIndex + 1, color, isFirstPlace, isMobile);
 
       group.add(
         this.add
-          .text(x, cardY + 18, participant?.nome || "Aguardando ideias", {
+          .text(x, cardY + 20, participant?.nome || "Aguardando ideias", {
             fontFamily: "Arial, Helvetica, sans-serif",
-            fontSize: isMobile ? "13px" : "16px",
-            fontStyle: "700",
+            fontSize: isMobile ? "12px" : "16px",
+            fontStyle: "900",
             color: "#ffffff",
             align: "center",
-            wordWrap: { width: cardWidth - 18 }
+            wordWrap: { width: cardWidth - 16 }
           })
           .setOrigin(0.5)
       );
@@ -156,13 +170,14 @@ export default class RankingScene extends Phaser.Scene {
         this.add
           .text(
             x,
-            cardY + currentCardHeight / 2 - (isMobile ? 22 : 18),
+            cardY + currentCardHeight / 2 - (isMobile ? 20 : 18),
             participant
-              ? `${formatNumber(participantIdeas(participant))} ideias • ${formatNumber(participantPoints(participant))} pts`
-              : "0 ideias • 0 pts",
+              ? `${formatNumber(participantIdeas(participant))} gols • ${formatNumber(participantPoints(participant))} pts`
+              : "0 gols • 0 pts",
             {
               fontFamily: "Arial, Helvetica, sans-serif",
-              fontSize: isMobile ? "11px" : "13px",
+              fontSize: isMobile ? "10px" : "13px",
+              fontStyle: "800",
               color: "#dbe8f6",
               align: "center",
               wordWrap: { width: cardWidth - 18 }
@@ -172,11 +187,49 @@ export default class RankingScene extends Phaser.Scene {
       );
     });
 
-    group.add(this.add.rectangle(width / 2, y + cardHeight / 2 + 36, Math.min(width - 48, 720), 4, COLORS.orange, 0.88));
+    group.add(this.add.rectangle(width / 2, y + cardHeight / 2 + 38, Math.min(width - 48, 720), 4, COLORS.orange, 0.9));
+  }
+
+  celebrateCurrentParticipant(participants) {
+    if (this.top3Celebrated) return;
+    const participant = getStoredParticipant();
+    if (!participant) return;
+    const position = findParticipantPosition(participants, participant.matricula);
+    if (position && position <= 3) {
+      this.top3Celebrated = true;
+      triggerConfetti({ count: 48, duration: 2000 });
+      showToast("Você está no Top 3!", "success");
+      audioManager.playEffect("top3");
+    }
+  }
+
+  drawBackground(width, height) {
+    this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
+    this.add.rectangle(width / 2, height * 0.56, width, height * 0.86, COLORS.field, 0.78);
+    this.add.rectangle(width / 2, 0, width, Math.max(150, height * 0.22), COLORS.steel, 0.42).setOrigin(0.5, 0);
+    this.add.rectangle(width / 2, height * 0.56, width * 0.92, height * 0.46, COLORS.white, 0).setStrokeStyle(3, COLORS.white, 0.13);
+    this.add.circle(width / 2, height * 0.56, Math.min(80, width * 0.16), COLORS.white, 0).setStrokeStyle(3, COLORS.white, 0.11);
+    for (let index = 0; index < 8; index += 1) {
+      this.add.rectangle(width * (index / 7), height * 0.58, 2, height * 0.8, COLORS.white, 0.05);
+    }
+  }
+
+  drawLogo(width) {
+    if (!this.textures.exists("logo-missao-5s")) return;
+    const logo = this.add.image(78, 42, "logo-missao-5s").setOrigin(0.5);
+    const source = logo.texture.getSourceImage();
+    logo.setScale(Math.min(118 / source.width, 44 / source.height));
+    if (width < 520) logo.setAlpha(0.64);
+  }
+
+  drawSmallTrophy(group, x, y, size) {
+    group.add(this.add.rectangle(x, y, size * 0.72, size * 0.62, COLORS.gold, 0.9));
+    group.add(this.add.rectangle(x, y + size * 0.48, size * 0.22, size * 0.55, COLORS.gold, 0.9));
+    group.add(this.add.rectangle(x, y + size * 0.82, size * 0.84, size * 0.16, COLORS.gold, 0.9));
   }
 
   drawMedal(group, x, y, rank, color, isFirstPlace, isMobile) {
-    const radius = isMobile ? 22 : isFirstPlace ? 31 : 27;
+    const radius = isMobile ? 19 : isFirstPlace ? 27 : 24;
     group.add(this.add.rectangle(x - radius * 0.28, y - radius * 0.9, radius * 0.36, radius * 0.7, color, 0.9).setAngle(-10));
     group.add(this.add.rectangle(x + radius * 0.28, y - radius * 0.9, radius * 0.36, radius * 0.7, color, 0.9).setAngle(10));
     group.add(this.add.circle(x, y, radius, color, 1).setStrokeStyle(4, COLORS.white, 0.24));

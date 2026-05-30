@@ -72,12 +72,12 @@ function renderSummary() {
   const top3 = sortParticipants(state.participants).slice(0, 3);
 
   summary.innerHTML = `
-    ${summaryCard("Total de ideias", formatNumber(state.ideas.length))}
-    ${summaryCard("Participantes", formatNumber(state.participants.length))}
+    ${summaryCard("Gols de ideia", formatNumber(state.ideas.length))}
+    ${summaryCard("Participantes escalados", formatNumber(state.participants.length))}
     ${summaryCard("Ideias por turno", mapCount(totalPorTurno))}
     ${summaryCard("Ideias por senso", mapCount(totalPorSenso))}
     ${summaryCard("Ideias por status", mapCount(totalPorStatus))}
-    ${summaryCard("Top 3", top3.length ? top3.map((item, index) => `${index + 1}º ${escapeHtml(item.nome)} — ${formatNumber(participantIdeas(item))} ideias`).join("<br>") : "Sem ranking")}
+    ${summaryCard("Artilheiros", top3.length ? top3.map((item, index) => `${index + 1}º ${escapeHtml(item.nome)} — ${formatNumber(participantIdeas(item))} gols`).join("<br>") : "Sem ranking")}
   `;
 }
 
@@ -123,7 +123,7 @@ function renderIdeas() {
   countLabel.textContent = `${formatNumber(state.filteredIdeas.length)} registros`;
 
   if (!state.filteredIdeas.length) {
-    list.innerHTML = `<div class="empty-state">Nenhuma ideia encontrada.</div>`;
+    list.innerHTML = `<div class="empty-state">Nenhuma jogada encontrada.</div>`;
     return;
   }
 

@@ -25,8 +25,8 @@ export function showRankingPanel(participants, { onBack } = {}) {
       <section class="ranking-panel" aria-labelledby="ranking-title">
         <div class="ranking-panel-header">
           <div>
-            <p class="eyebrow">Ranking público</p>
-            <h2 id="ranking-title">🏆 Top 3 — Quem mais lançou ideias</h2>
+            <p class="eyebrow">Tabela da Copa 5S</p>
+            <h2 id="ranking-title">Top 3 — Artilheiros de Ideias</h2>
           </div>
           <button class="ghost-button" type="button" data-action="back">Voltar</button>
         </div>
@@ -45,6 +45,7 @@ export function showRankingPanel(participants, { onBack } = {}) {
           </label>
         </div>
 
+        <h3 class="ranking-subtitle">Classificação geral</h3>
         <div id="ranking-list" class="ranking-list"></div>
       </section>
     `,
@@ -111,7 +112,7 @@ function renderRankingList() {
           </div>
           <div class="rank-metric">
             <strong>${formatNumber(participantIdeas(participant))}</strong>
-            <span>ideias</span>
+            <span>gols</span>
           </div>
           <div class="rank-metric">
             <strong>${formatNumber(participantPoints(participant))}</strong>

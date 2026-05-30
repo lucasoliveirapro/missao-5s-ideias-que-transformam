@@ -3,6 +3,9 @@
   --navy: #0b1f3a;
   --navy-2: #102c4a;
   --steel: #28445f;
+  --field: #0f7a3b;
+  --field-dark: #0b5f30;
+  --gold: #f4c430;
   --orange: #f58220;
   --paper: #f4f7fb;
   --line: #d7e0ea;
@@ -24,7 +27,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(244, 196, 48, 0.12), transparent 24%),
+    linear-gradient(180deg, #edf3f9 0%, #f4f7fb 42%, #eaf3ed 100%);
   color: var(--text);
   -webkit-text-size-adjust: 100%;
 }
@@ -50,15 +55,16 @@ button {
   place-items: center;
   padding: 20px;
   background:
-    linear-gradient(rgba(11, 31, 58, 0.88), rgba(11, 31, 58, 0.9)),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 110px),
-    var(--navy);
+    linear-gradient(rgba(8, 33, 63, 0.88), rgba(8, 33, 63, 0.9)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0 1px, transparent 1px 110px),
+    linear-gradient(135deg, var(--navy), var(--field));
 }
 
 .login-card {
   width: min(460px, 100%);
   border-radius: 8px;
   padding: 28px;
+  border: 1px solid rgba(244, 196, 48, 0.38);
   background: #ffffff;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
 }
@@ -78,7 +84,7 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: var(--orange);
+  color: var(--field);
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0;
@@ -132,12 +138,12 @@ select:focus {
 }
 
 .primary-button {
-  background: var(--orange);
+  background: linear-gradient(135deg, var(--orange), #ff9f45);
   color: #ffffff;
 }
 
 .secondary-button {
-  background: var(--steel);
+  background: linear-gradient(135deg, var(--steel), var(--navy-2));
   color: #ffffff;
 }
 
@@ -186,7 +192,7 @@ button:disabled {
   border-radius: 8px;
   padding: 12px 14px;
   background: #ffffff;
-  border-left: 5px solid var(--orange);
+  border-left: 5px solid var(--gold);
   box-shadow: 0 8px 22px rgba(16, 37, 55, 0.08);
 }
 
@@ -210,7 +216,9 @@ button:disabled {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px;
-  background: #ffffff;
+  background:
+    linear-gradient(180deg, #ffffff, #f8fbf9),
+    repeating-linear-gradient(90deg, rgba(15, 122, 59, 0.06) 0 12px, transparent 12px 24px);
   box-shadow: 0 8px 22px rgba(16, 37, 55, 0.06);
 }
 
@@ -226,6 +234,21 @@ button:disabled {
   color: var(--navy);
   font-size: 1.1rem;
   line-height: 1.45;
+}
+
+.admin-logo {
+  display: block;
+  width: min(240px, 72%);
+  max-height: 92px;
+  object-fit: contain;
+  margin: 0 auto 16px;
+}
+
+.admin-logo-small {
+  width: 92px;
+  max-height: 46px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .admin-actions {
@@ -278,6 +301,7 @@ button:disabled {
   gap: 14px;
   padding: 16px;
   border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(15, 122, 59, 0.08), rgba(244, 196, 48, 0.08));
 }
 
 .idea-card h3 {
@@ -304,7 +328,7 @@ button:disabled {
 }
 
 .idea-details dt {
-  color: var(--orange);
+  color: var(--field);
   font-size: 0.8rem;
   font-weight: 900;
   text-transform: uppercase;

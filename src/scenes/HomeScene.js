@@ -4,10 +4,13 @@ import { getStoredParticipant, shouldPauseCanvasResize } from "../utils.js";
 import { showRegistrationForm } from "../ui/forms.js";
 
 const COLORS = {
-  navy: 0x0b1f3a,
+  navy: 0x08213f,
   navy2: 0x102c4a,
-  steel: 0x28445f,
+  field: 0x0f7a3b,
+  fieldDark: 0x0b5f30,
+  steel: 0x2f4357,
   white: 0xffffff,
+  gold: 0xf4c430,
   orange: 0xf58220,
   cyan: 0x69d2ff
 };
@@ -37,47 +40,60 @@ export default class HomeScene extends Phaser.Scene {
     this.children.removeAll(true);
     const { width, height } = this.scale;
     const centerX = width / 2;
-    const top = Math.max(72, height * 0.12);
+    const top = Math.max(72, height * 0.11);
 
     this.drawBackground(width, height);
-    this.drawShield(centerX, top - 16, Math.min(82, width * 0.2));
+    this.drawLogo(centerX, top, width);
 
     this.add
-      .text(centerX, top + 68, "Missão 5S", {
+      .text(centerX, top + 104, "Copa 5S — Funilaria Goiana", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(64, Math.max(42, width * 0.08))}px`,
-        fontStyle: "700",
+        fontSize: `${Math.min(46, Math.max(30, width * 0.062))}px`,
+        fontStyle: "900",
         color: "#ffffff",
-        align: "center"
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(centerX, top + 126, "Ideias que Transformam", {
-        fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(34, Math.max(22, width * 0.045))}px`,
-        fontStyle: "700",
-        color: "#f58220",
-        align: "center"
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(centerX, top + 176, "Lance melhorias bem descritas e suba no ranking.", {
-        fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(21, Math.max(16, width * 0.026))}px`,
-        color: "#dbe8f6",
         align: "center",
-        wordWrap: { width: Math.min(720, width - 44) }
+        wordWrap: { width: Math.min(900, width - 32) }
       })
       .setOrigin(0.5);
 
-    this.createAccentLine(centerX, top + 216, Math.min(360, width - 72));
+    const shine = this.add.rectangle(centerX, top + 143, Math.min(520, width - 56), 4, COLORS.gold, 0.95);
+    this.tweens.add({
+      targets: shine,
+      alpha: { from: 0.35, to: 1 },
+      scaleX: { from: 0.72, to: 1 },
+      duration: 1350,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut"
+    });
 
-    const buttonWidth = Math.min(330, width - 48);
-    const buttonY = Math.min(height - 160, top + 300);
-    this.createButton(centerX, buttonY, buttonWidth, 58, "Entrar na Missão", COLORS.orange, () => {
+    this.add
+      .text(centerX, top + 178, "Entre em campo com sua ideia!", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(26, Math.max(18, width * 0.035))}px`,
+        fontStyle: "800",
+        color: "#f4c430",
+        align: "center"
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(centerX, top + 218, "Lance melhorias, descreva o local e ajude a Funilaria a subir de nível.", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(20, Math.max(15, width * 0.025))}px`,
+        color: "#eef7ff",
+        align: "center",
+        wordWrap: { width: Math.min(760, width - 44) }
+      })
+      .setOrigin(0.5);
+
+    this.drawScoreboard(centerX, top + 274, Math.min(500, width - 42));
+
+    const buttonWidth = Math.min(350, width - 48);
+    const buttonY = Math.min(height - 155, top + 370);
+    this.createButton(centerX, buttonY, buttonWidth, 58, "Entrar em Campo", COLORS.orange, () => {
       audioManager.unlock();
+      audioManager.playEffect("whistle");
       const participant = getStoredParticipant();
       if (participant) {
         this.scene.start("MissionScene");
@@ -89,16 +105,17 @@ export default class HomeScene extends Phaser.Scene {
       });
     });
 
-    this.createButton(centerX, buttonY + 76, buttonWidth, 58, "Ver Ranking", COLORS.steel, () => {
+    this.createButton(centerX, buttonY + 76, buttonWidth, 58, "Ver Ranking da Copa 5S", COLORS.steel, () => {
       audioManager.unlock();
       this.scene.start("RankingScene", { from: "HomeScene" });
     });
 
     this.add
-      .text(centerX, height - 34, "SIS • Funilaria • 5S", {
+      .text(centerX, height - 30, "SIS • Funilaria • 5S", {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "14px",
-        color: "#9fb2c7",
+        fontStyle: "800",
+        color: "#dbe8f6",
         align: "center"
       })
       .setOrigin(0.5);
@@ -106,62 +123,101 @@ export default class HomeScene extends Phaser.Scene {
 
   drawBackground(width, height) {
     this.add.rectangle(width / 2, height / 2, width, height, COLORS.navy);
-    this.add.rectangle(width / 2, 0, width, Math.max(160, height * 0.24), COLORS.steel, 0.32).setOrigin(0.5, 0);
-
-    for (let index = 0; index < 9; index += 1) {
-      const y = height * 0.16 + index * 72;
-      this.add.rectangle(width / 2, y, width * 0.96, 2, COLORS.white, 0.04 + index * 0.004);
-    }
+    this.add.rectangle(width / 2, height * 0.58, width, height * 0.9, COLORS.field, 0.92);
+    this.add.rectangle(width / 2, height * 0.58, width, height * 0.9, COLORS.fieldDark, 0.28);
 
     for (let index = 0; index < 8; index += 1) {
-      const x = width * 0.08 + index * (width / 7);
-      this.add.rectangle(x, height * 0.52, 2, height * 0.78, COLORS.white, 0.035);
+      this.add.rectangle(width * (index / 7), height * 0.58, 2, height * 0.84, COLORS.white, 0.08);
     }
 
-    const beam = this.add.rectangle(width * 0.18, height * 0.55, 14, height * 0.9, COLORS.orange, 0.26);
-    beam.setAngle(-18);
-    this.tweens.add({
-      targets: beam,
-      alpha: { from: 0.16, to: 0.4 },
-      duration: 1800,
-      yoyo: true,
-      repeat: -1
-    });
+    this.add.rectangle(width / 2, height * 0.58, width * 0.92, height * 0.52, COLORS.white, 0).setStrokeStyle(3, COLORS.white, 0.18);
+    this.add.circle(width / 2, height * 0.58, Math.min(92, width * 0.18), COLORS.white, 0).setStrokeStyle(3, COLORS.white, 0.16);
+    this.add.rectangle(width / 2, 0, width, Math.max(170, height * 0.25), COLORS.steel, 0.48).setOrigin(0.5, 0);
 
-    this.add.circle(width * 0.82, height * 0.24, 110, COLORS.cyan, 0.08);
-    this.add.circle(width * 0.22, height * 0.72, 130, COLORS.orange, 0.07);
+    for (let index = 0; index < 7; index += 1) {
+      this.add.rectangle(width / 2, height * 0.11 + index * 58, width * 0.95, 2, COLORS.white, 0.03 + index * 0.006);
+    }
+
+    this.drawTrophy(width * 0.82, height * 0.2, Math.min(78, width * 0.16));
+    this.drawBall(width * 0.18, height * 0.31, Math.min(42, width * 0.09));
+    this.drawFlags(width, height);
   }
 
-  drawShield(x, y, size) {
-    const points = [
-      -0.42, -0.45,
-      0.42, -0.45,
-      0.36, 0.16,
-      0, 0.5,
-      -0.36, 0.16
-    ].map((value) => value * size);
-    this.add.polygon(x, y, points, COLORS.navy2, 0.95).setStrokeStyle(3, COLORS.orange, 0.9);
-    this.add.text(x, y - size * 0.05, "5S", {
+  drawLogo(x, y, width) {
+    if (this.textures.exists("logo-missao-5s")) {
+      const logo = this.add.image(x, y, "logo-missao-5s");
+      this.fitImage(logo, Math.min(250, width * 0.58), Math.min(92, width * 0.22));
+      logo.setAlpha(0.98);
+      return;
+    }
+
+    this.add.rectangle(x, y, Math.min(270, width - 52), 72, COLORS.navy2, 0.95).setStrokeStyle(3, COLORS.gold, 0.9);
+    this.add
+      .text(x, y, "MISSÃO 5S\nFUNILARIA GOIANA", {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${Math.min(22, Math.max(16, width * 0.038))}px`,
+        fontStyle: "900",
+        color: "#ffffff",
+        align: "center"
+      })
+      .setOrigin(0.5);
+  }
+
+  drawScoreboard(x, y, width) {
+    this.add.rectangle(x, y, width, 62, COLORS.navy2, 0.94).setStrokeStyle(2, COLORS.gold, 0.72);
+    this.add.text(x - width * 0.36, y, "5S", {
       fontFamily: "Arial, Helvetica, sans-serif",
-      fontSize: `${Math.max(22, size * 0.34)}px`,
+      fontSize: "20px",
       fontStyle: "900",
-      color: "#ffffff"
+      color: "#f4c430"
+    }).setOrigin(0.5);
+    this.add.text(x, y, "Cada ideia é um gol para a Funilaria.", {
+      fontFamily: "Arial, Helvetica, sans-serif",
+      fontSize: "15px",
+      fontStyle: "800",
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: width - 90 }
     }).setOrigin(0.5);
   }
 
-  createAccentLine(x, y, width) {
-    this.add.rectangle(x, y, width, 4, COLORS.orange, 0.95);
-    this.add.rectangle(x, y + 8, width * 0.62, 2, COLORS.cyan, 0.85);
+  fitImage(image, maxWidth, maxHeight) {
+    const source = image.texture.getSourceImage();
+    const scale = Math.min(maxWidth / source.width, maxHeight / source.height);
+    image.setScale(scale);
+  }
+
+  drawTrophy(x, y, size) {
+    this.add.rectangle(x, y + size * 0.18, size * 0.56, size * 0.58, COLORS.gold, 0.86);
+    this.add.circle(x - size * 0.36, y, size * 0.26, COLORS.gold, 0).setStrokeStyle(5, COLORS.gold, 0.65);
+    this.add.circle(x + size * 0.36, y, size * 0.26, COLORS.gold, 0).setStrokeStyle(5, COLORS.gold, 0.65);
+    this.add.rectangle(x, y + size * 0.63, size * 0.16, size * 0.42, COLORS.gold, 0.92);
+    this.add.rectangle(x, y + size * 0.88, size * 0.72, size * 0.16, COLORS.gold, 0.92);
+  }
+
+  drawBall(x, y, radius) {
+    this.add.circle(x, y, radius, COLORS.white, 0.92).setStrokeStyle(2, COLORS.navy2, 0.42);
+    this.add.polygon(x, y, [0, -radius * 0.48, radius * 0.42, -radius * 0.1, radius * 0.26, radius * 0.45, -radius * 0.26, radius * 0.45, -radius * 0.42, -radius * 0.1], COLORS.navy2, 0.88);
+    this.tweens.add({ targets: this.add.circle(x, y, radius + 4, COLORS.white, 0.08), alpha: 0, scale: 1.55, duration: 1800, repeat: -1 });
+  }
+
+  drawFlags(width, height) {
+    for (let index = 0; index < 8; index += 1) {
+      const x = width * 0.08 + index * (width * 0.12);
+      const y = height * 0.08 + (index % 2) * 12;
+      this.add.triangle(x, y, 0, 0, 24, 8, 0, 16, index % 2 ? COLORS.gold : COLORS.orange, 0.7);
+    }
   }
 
   createButton(x, y, width, height, label, color, callback) {
-    const rect = this.add.rectangle(x, y, width, height, color, 1).setStrokeStyle(2, COLORS.white, 0.16);
+    const rect = this.add.rectangle(x, y, width, height, color, 1).setStrokeStyle(2, COLORS.white, 0.18);
     this.add
       .text(x, y, label, {
         fontFamily: "Arial, Helvetica, sans-serif",
         fontSize: "18px",
-        fontStyle: "700",
-        color: "#ffffff"
+        fontStyle: "900",
+        color: "#ffffff",
+        align: "center"
       })
       .setOrigin(0.5);
     const zone = this.add.zone(x, y, width, height).setOrigin(0.5).setInteractive({ useHandCursor: true });
