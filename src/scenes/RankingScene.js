@@ -26,6 +26,9 @@ const COLORS = {
   cyan: 0x69d2ff
 };
 
+const PUBLIC_CREDIT =
+  "Sistema desenvolvido para apoio à campanha Copa 5S — Funilaria Goiana.\nIdealização e desenvolvimento: Lucas Oliveira — Team Leader AM.";
+
 export default class RankingScene extends Phaser.Scene {
   constructor() {
     super("RankingScene");
@@ -188,6 +191,25 @@ export default class RankingScene extends Phaser.Scene {
     });
 
     group.add(this.add.rectangle(width / 2, y + cardHeight / 2 + 38, Math.min(width - 48, 720), 4, COLORS.orange, 0.9));
+    this.drawCreditFooter(width, visibleTopHeight);
+  }
+
+  drawCreditFooter(width, visibleTopHeight) {
+    if (this.creditText?.scene) {
+      this.creditText.destroy();
+    }
+
+    this.creditText = this.add
+      .text(width / 2, visibleTopHeight - 10, PUBLIC_CREDIT, {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${width < 620 ? 8 : 10}px`,
+        color: "#dbe8f6",
+        align: "center",
+        lineSpacing: 1,
+        wordWrap: { width: Math.min(820, width - 28) }
+      })
+      .setOrigin(0.5, 1)
+      .setAlpha(0.66);
   }
 
   celebrateCurrentParticipant(participants) {

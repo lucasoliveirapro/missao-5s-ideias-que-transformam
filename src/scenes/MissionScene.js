@@ -25,6 +25,9 @@ const COLORS = {
   cyan: 0x69d2ff
 };
 
+const PUBLIC_CREDIT =
+  "Sistema desenvolvido para apoio à campanha Copa 5S — Funilaria Goiana.\nIdealização e desenvolvimento: Lucas Oliveira — Team Leader AM.";
+
 export default class MissionScene extends Phaser.Scene {
   constructor() {
     super("MissionScene");
@@ -145,7 +148,7 @@ export default class MissionScene extends Phaser.Scene {
     }
 
     const buttonWidth = Math.min(340, width - 48);
-    const startY = Math.min(height - 204, postStatsY + (isShortViewport ? 62 : 136));
+    const startY = Math.min(height - (isShortViewport ? 230 : 226), postStatsY + (isShortViewport ? 62 : 136));
     this.createButton(centerX, startY, buttonWidth, 58, "Marcar um Gol de Ideia", COLORS.orange, () => {
       audioManager.unlock();
       this.openIdeaForm();
@@ -161,6 +164,22 @@ export default class MissionScene extends Phaser.Scene {
         onCancel: () => this.scene.start("HomeScene")
       });
     });
+
+    this.drawCreditFooter(width, height);
+  }
+
+  drawCreditFooter(width, height) {
+    this.add
+      .text(width / 2, height - 12, PUBLIC_CREDIT, {
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: `${width < 620 ? 9 : 10}px`,
+        color: "#dbe8f6",
+        align: "center",
+        lineSpacing: 2,
+        wordWrap: { width: Math.min(820, width - 28) }
+      })
+      .setOrigin(0.5, 1)
+      .setAlpha(0.72);
   }
 
   drawStats(centerX, y, contentWidth) {
