@@ -3,6 +3,9 @@
   --navy: #0b1f3a;
   --navy-2: #102c4a;
   --steel: #28445f;
+  --field: #0f7a3b;
+  --field-dark: #0b5f30;
+  --gold: #f4c430;
   --orange: #f58220;
   --orange-2: #ff9f45;
   --white: #ffffff;
@@ -25,7 +28,9 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: var(--navy);
+  background:
+    radial-gradient(circle at 18% 10%, rgba(244, 196, 48, 0.15), transparent 24%),
+    linear-gradient(135deg, #08213f 0%, #0b1f3a 42%, #0f7a3b 100%);
   color: var(--text);
   -webkit-text-size-adjust: 100%;
 }
@@ -97,7 +102,7 @@ button {
   display: flex;
   flex-direction: column;
   overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(244, 196, 48, 0.34);
   border-radius: 8px;
   background: var(--paper);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
@@ -114,7 +119,9 @@ button {
 
 .modal-heading {
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(135deg, #ffffff 0%, #edf3f9 100%);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(238, 247, 255, 0.96) 100%),
+    repeating-linear-gradient(90deg, rgba(15, 122, 59, 0.12) 0 12px, rgba(11, 95, 48, 0.12) 12px 24px);
 }
 
 .modal-heading h2,
@@ -134,7 +141,7 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: var(--orange);
+  color: var(--field);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -219,12 +226,12 @@ button {
 }
 
 .primary-button {
-  background: var(--orange);
+  background: linear-gradient(135deg, var(--orange), #ff9f45);
   color: #ffffff;
 }
 
 .secondary-button {
-  background: var(--steel);
+  background: linear-gradient(135deg, var(--steel), var(--navy-2));
   color: #ffffff;
 }
 
@@ -250,7 +257,7 @@ button {
   margin: 0 auto 14px;
   border-radius: 999px;
   padding: 9px 16px;
-  background: var(--success);
+  background: linear-gradient(135deg, var(--field), var(--gold));
   color: #ffffff;
   font-weight: 900;
 }
@@ -297,7 +304,9 @@ button {
   max-height: 46vh;
   padding: 18px clamp(14px, 3vw, 28px) max(18px, env(safe-area-inset-bottom));
   border-top: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(244, 247, 251, 0.98);
+  background:
+    linear-gradient(180deg, rgba(244, 247, 251, 0.98), rgba(232, 241, 236, 0.98)),
+    repeating-linear-gradient(90deg, rgba(15, 122, 59, 0.08) 0 18px, transparent 18px 36px);
   box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.28);
   overflow-y: auto;
 }
@@ -314,6 +323,13 @@ button {
   margin: 4px 0 0;
   color: var(--navy);
   font-size: clamp(1.1rem, 3vw, 1.7rem);
+}
+
+.ranking-subtitle {
+  margin: 4px 0 10px;
+  color: var(--navy);
+  font-size: 1rem;
+  text-transform: uppercase;
 }
 
 .ranking-filters {
@@ -345,7 +361,7 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--navy);
+  background: linear-gradient(135deg, var(--navy), var(--field));
   color: #ffffff;
   font-weight: 900;
 }
@@ -436,9 +452,63 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   padding: 8px;
-  background: rgba(16, 44, 74, 0.86);
+  background: rgba(8, 33, 63, 0.9);
   color: #ffffff;
   backdrop-filter: blur(12px);
+}
+
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+
+.goal-celebration {
+  position: fixed;
+  z-index: 75;
+  top: max(18px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(560px, calc(100% - 28px));
+  transform: translateX(-50%);
+  border: 2px solid rgba(244, 196, 48, 0.7);
+  border-radius: 8px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(8, 33, 63, 0.98), rgba(15, 122, 59, 0.96));
+  color: #ffffff;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  animation: goal-pop 360ms ease-out both;
+}
+
+.goal-celebration strong {
+  display: block;
+  color: var(--gold);
+  font-size: clamp(1.5rem, 7vw, 2.8rem);
+  line-height: 1;
+}
+
+.goal-celebration span {
+  display: block;
+  margin-top: 6px;
+  font-weight: 800;
+}
+
+.goal-celebration-out {
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+@keyframes goal-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 .sound-controls button {

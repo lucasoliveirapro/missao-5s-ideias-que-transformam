@@ -1,6 +1,6 @@
-# Missão 5S: Ideias que Transformam
+# Copa 5S — Funilaria Goiana
 
-Plataforma gamificada para evento de 5S na Funilaria. O colaborador acessa pelo celular ou desktop, informa nome, matrícula e turno, lança ideias de melhoria bem descritas, soma pontos e sobe no ranking.
+Plataforma gamificada para evento de 5S na Funilaria. Cada ideia lançada é um gol para a Funilaria: o colaborador acessa pelo celular ou desktop, informa nome, matrícula e turno, lança ideias de melhoria bem descritas, soma pontos e sobe no ranking.
 
 ## 1. Objetivo
 
@@ -264,7 +264,7 @@ Não existe link para o admin dentro da tela pública.
 3. Rode `npm run dev`.
 4. Entre na missão.
 5. Informe nome completo, matrícula numérica e turno.
-6. Clique em **Lançar Nova Ideia**.
+6. Clique em **Marcar um Gol de Ideia**.
 7. Preencha título, área, descrição do local, problema, sugestão e senso.
 8. Envie.
 
@@ -273,7 +273,7 @@ Cada ideia enviada soma 10 pontos.
 ## 14. Testar ranking
 
 1. Envie ideias com matrículas diferentes.
-2. Abra **Ver Ranking**.
+2. Abra **Ver Ranking da Copa 5S**.
 3. Confira a ordenação:
    1. mais ideias
    2. mais pontos
@@ -295,10 +295,20 @@ No admin, clique em **Limpar dados do evento** e confirme:
 
 A limpeza apaga `ideas` e `participants`.
 
-## 17. Áudios opcionais
+## 17. Logo, favicon e áudios opcionais
+
+Coloque os arquivos oficiais da campanha nestes caminhos:
+
+- `public/assets/images/logo-missao-5s.png`
+- `public/assets/images/logo-missao-5s-icon.png`
+- `public/favicon.png`
+- `public/favicon.ico`
 
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
+- `gol-de-ideia.mp3`
+- `torcida.mp3`
+- `apito.mp3`
 - `musica-fundo.mp3`
 - `ideia-enviada.mp3`
 - `ranking.mp3`

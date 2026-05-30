@@ -5,7 +5,10 @@ const TRACKS = {
   ideaSent: "audio/ideia-enviada.mp3",
   ranking: "audio/ranking.mp3",
   top3: "audio/top3.mp3",
-  keepGoing: "audio/continue-participando.mp3"
+  keepGoing: "audio/continue-participando.mp3",
+  goal: "audio/gol-de-ideia.mp3",
+  crowd: "audio/torcida.mp3",
+  whistle: "audio/apito.mp3"
 };
 
 const TRACK_CHECK_TIMEOUT_MS = 4000;
@@ -44,7 +47,7 @@ async function requestWithTimeout(url, options = {}) {
 class AudioManager {
   constructor() {
     this.enabled = true;
-    this.volume = 0.42;
+    this.volume = 0.28;
     this.unlocked = false;
     this.backgroundKey = null;
     this.instances = new Map();
@@ -227,7 +230,7 @@ export function setupAudioControls() {
     <button id="toggle-sound" type="button" aria-pressed="true">Som Ligado</button>
     <label>
       Volume
-      <input id="volume-control" type="range" min="0" max="1" step="0.05" value="0.42" />
+      <input id="volume-control" type="range" min="0" max="1" step="0.05" value="0.28" />
     </label>
     <span id="sound-status" class="sound-status" aria-live="polite"></span>
   `;

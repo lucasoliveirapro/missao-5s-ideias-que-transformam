@@ -10,7 +10,7 @@ import {
   validateParticipant
 } from "../utils.js";
 import { SUPABASE_CONFIG_MESSAGE, registerParticipant, submitIdea } from "./ideas.js";
-import { hideOverlay, setBusy, showOverlay, showToast } from "./notifications.js";
+import { hideOverlay, setBusy, showOverlay, showToast, triggerGoalCelebration } from "./notifications.js";
 
 const IDEA_DRAFT_PREFIX = "missao5s.ideaDraft.";
 
@@ -61,9 +61,9 @@ export function showRegistrationForm({ onSuccess, onCancel } = {}) {
       <div class="modal-backdrop">
         <section class="modal-card participant-card" aria-labelledby="participant-title">
           <div class="modal-heading">
-            <p class="eyebrow">Cadastro da missão</p>
-            <h2 id="participant-title">Viu uma oportunidade de melhoria? Registre sua ideia!</h2>
-            <p>Lance melhorias, descreva a oportunidade e suba no ranking.</p>
+            <p class="eyebrow">Convocação da Copa 5S</p>
+            <h2 id="participant-title">Entre em campo com sua ideia!</h2>
+            <p>Lance melhorias, descreva o local e ajude a Funilaria a subir de nível.</p>
           </div>
           <form id="participant-form" class="stacked-form" autocomplete="off">
             <label>
@@ -84,7 +84,7 @@ export function showRegistrationForm({ onSuccess, onCancel } = {}) {
             <p id="participant-error" class="form-error" role="alert"></p>
             <div class="form-actions">
               ${onCancel ? '<button class="ghost-button" type="button" data-action="cancel">Cancelar</button>' : ""}
-              <button class="primary-button" type="submit">Entrar na Missão</button>
+              <button class="primary-button" type="submit">Entrar em Campo</button>
             </div>
           </form>
         </section>
@@ -127,7 +127,7 @@ export function showRegistrationForm({ onSuccess, onCancel } = {}) {
     } catch (err) {
       error.textContent = err.message || "Não foi possível salvar o cadastro.";
     } finally {
-      setBusy(submitButton, false, "Entrar na Missão");
+      setBusy(submitButton, false, "Entrar em Campo");
     }
   });
 }
@@ -138,8 +138,8 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
       <div class="modal-backdrop">
         <section class="modal-card idea-card" aria-labelledby="idea-title">
           <div class="modal-heading">
-            <p class="eyebrow">Nova melhoria 5S</p>
-            <h2 id="idea-title">Registrar ideia bem descrita</h2>
+            <p class="eyebrow">Jogada 5S</p>
+            <h2 id="idea-title">Registrar jogada 5S</h2>
           </div>
           <form id="idea-form" class="stacked-form" autocomplete="off">
             <label>
@@ -172,7 +172,7 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
             <p id="idea-error" class="form-error" role="alert"></p>
             <div class="form-actions">
               <button class="ghost-button" type="button" data-action="cancel">Cancelar</button>
-              <button class="primary-button" type="submit">Enviar ideia</button>
+              <button class="primary-button" type="submit">Enviar ideia para o campeonato</button>
             </div>
           </form>
         </section>
@@ -223,35 +223,34 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
     }
 
     cancel.disabled = true;
-    setBusy(submitButton, true, "Enviando ideia...");
+    setBusy(submitButton, true, "Validando jogada...");
 
     try {
       const result = await submitIdea(participant, formData);
       clearIdeaDraft(participant);
-      audioManager.playEffect("ideaSent");
       showIdeaSuccess(result, { onSuccess });
     } catch (err) {
       error.textContent = err.message || "Não foi possível enviar a ideia.";
       error.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } finally {
       cancel.disabled = false;
-      setBusy(submitButton, false, "Enviar ideia");
+      setBusy(submitButton, false, "Enviar ideia para o campeonato");
     }
   });
 }
 
 function showIdeaSuccess(result, { onSuccess } = {}) {
   const top3Message = result.rankPosition && result.rankPosition <= 3
-    ? `<p class="success-rank">Você entrou no Top 3 da missão.</p>`
+    ? `<p class="success-rank">Você está no Top 3 da Copa 5S.</p>`
     : `<p class="success-rank">Continue participando para subir no ranking.</p>`;
 
   showOverlay(
     `
       <div class="modal-backdrop">
         <section class="modal-card success-card" aria-labelledby="success-title">
-          <div class="success-badge">+${formatNumber(result.pointsAdded)} pontos</div>
-          <h2 id="success-title">Ideia enviada com sucesso!</h2>
-          <p>Sua participação foi registrada no ranking.</p>
+          <div class="success-badge goal-points" data-goal-points>+0 pontos</div>
+          <h2 id="success-title">GOOOOL DE IDEIA!</h2>
+          <p>Sua melhoria entrou no campeonato 5S.</p>
           ${top3Message}
           <div class="result-grid">
             <div>
@@ -264,8 +263,8 @@ function showIdeaSuccess(result, { onSuccess } = {}) {
             </div>
           </div>
           <div class="form-actions stacked-mobile">
-            <button class="secondary-button" type="button" data-action="another">Enviar outra ideia</button>
-            <button class="secondary-button" type="button" data-action="ranking">Ver ranking</button>
+            <button class="secondary-button" type="button" data-action="another">Marcar outro gol</button>
+            <button class="secondary-button" type="button" data-action="ranking">Ver Ranking da Copa 5S</button>
             <button class="primary-button" type="button" data-action="mission">Voltar para missão</button>
           </div>
         </section>
@@ -274,9 +273,24 @@ function showIdeaSuccess(result, { onSuccess } = {}) {
   );
 
   if (result.rankPosition && result.rankPosition <= 3) {
-    audioManager.playEffect("top3");
+    triggerGoalCelebration({
+      points: result.pointsAdded,
+      message: "Você está no Top 3!",
+      playAudio: () => {
+        audioManager.playEffect("goal");
+        audioManager.playEffect("crowd");
+        audioManager.playEffect("top3");
+      }
+    });
   } else {
-    audioManager.playEffect("keepGoing");
+    triggerGoalCelebration({
+      points: result.pointsAdded,
+      playAudio: () => {
+        audioManager.playEffect("goal");
+        audioManager.playEffect("crowd");
+        audioManager.playEffect("ideaSent");
+      }
+    });
   }
 
   const root = document.getElementById("overlay-root");
