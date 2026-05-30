@@ -12,6 +12,7 @@ const TRACKS = {
 };
 
 const TRACK_CHECK_TIMEOUT_MS = 4000;
+const BACKGROUND_KEY = "background";
 
 function parseContentLength(headers) {
   const directLength = Number(headers.get("content-length") || 0);
@@ -49,15 +50,31 @@ class AudioManager {
     this.enabled = true;
     this.volume = 0.28;
     this.unlocked = false;
-    this.backgroundKey = null;
+    this.backgroundKey = BACKGROUND_KEY;
+    this.backgroundPlaying = false;
     this.instances = new Map();
     this.trackStatus = new Map();
     this.statusElement = null;
+    this.toggleElement = null;
   }
 
   setStatusElement(element) {
     this.statusElement = element;
     this.updateStatus("");
+  }
+
+  setToggleElement(element) {
+    this.toggleElement = element;
+    this.updateToggle();
+  }
+
+  updateToggle() {
+    if (!this.toggleElement) {
+      return;
+    }
+
+    this.toggleElement.setAttribute("aria-pressed", String(this.enabled));
+    this.toggleElement.textContent = this.enabled ? "Som Ligado" : "Som Desligado";
   }
 
   updateStatus(message) {
@@ -103,10 +120,24 @@ class AudioManager {
     return status;
   }
 
-  async getAudio(key) {
+  getUnavailableMessage(key, status) {
+    if (key !== BACKGROUND_KEY) {
+      return "";
+    }
+
+    if (status?.reason === "empty-or-invalid" || status?.reason === "decode-error") {
+      return "Arquivo de música inválido";
+    }
+
+    return "Adicione musica-fundo.mp3";
+  }
+
+  async getAudio(key, { silentMissing = false } = {}) {
     const status = await this.checkTrack(key);
     if (!status.available) {
-      this.updateStatus("Audio nao adicionado");
+      if (!silentMissing) {
+        this.updateStatus(this.getUnavailableMessage(key, status));
+      }
       return null;
     }
 
@@ -117,7 +148,9 @@ class AudioManager {
       audio.addEventListener("error", () => {
         this.trackStatus.set(key, { ...status, available: false, reason: "decode-error" });
         this.instances.delete(key);
-        this.updateStatus("Audio invalido");
+        if (key === BACKGROUND_KEY) {
+          this.updateStatus("Arquivo de música inválido");
+        }
       });
       this.instances.set(key, audio);
     }
@@ -127,27 +160,24 @@ class AudioManager {
   }
 
   async unlock() {
-    if (this.unlocked) {
+    if (this.unlocked && this.backgroundPlaying) {
       return;
     }
 
     this.unlocked = true;
-    if (this.backgroundKey) {
-      await this.playBackground(this.backgroundKey);
-    }
+    await this.playBackground(this.backgroundKey || BACKGROUND_KEY);
   }
 
   setEnabled(enabled) {
     this.enabled = enabled;
+    this.updateToggle();
     if (!enabled) {
       this.stopAll();
       this.updateStatus("");
       return;
     }
 
-    if (this.backgroundKey) {
-      this.playBackground(this.backgroundKey);
-    }
+    this.unlock();
   }
 
   setVolume(value) {
@@ -157,14 +187,20 @@ class AudioManager {
     });
   }
 
-  async playBackground(key = "background") {
+  async startBackgroundOnLoad(key = BACKGROUND_KEY) {
     this.backgroundKey = key;
-    if (!this.enabled || !this.unlocked) {
+    await this.playBackground(key, { fromAutoplay: true });
+  }
+
+  async playBackground(key = BACKGROUND_KEY, { fromAutoplay = false } = {}) {
+    this.backgroundKey = key;
+    if (!this.enabled) {
       return;
     }
 
     const audio = await this.getAudio(key);
     if (!audio) {
+      this.backgroundPlaying = false;
       return;
     }
 
@@ -173,8 +209,15 @@ class AudioManager {
 
     try {
       await audio.play();
+      this.unlocked = true;
+      this.backgroundPlaying = true;
+      this.updateStatus("");
     } catch {
+      this.backgroundPlaying = false;
       this.unlocked = false;
+      if (fromAutoplay) {
+        this.updateStatus("Clique na tela para ativar o som");
+      }
     }
   }
 
@@ -183,12 +226,13 @@ class AudioManager {
       return;
     }
 
-    const audio = await this.getAudio(this.backgroundKey);
+    const audio = await this.getAudio(this.backgroundKey, { silentMissing: true });
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
     }
-    this.backgroundKey = null;
+    this.backgroundPlaying = false;
+    this.backgroundKey = BACKGROUND_KEY;
   }
 
   async playEffect(key) {
@@ -196,7 +240,7 @@ class AudioManager {
       return;
     }
 
-    const source = await this.getAudio(key);
+    const source = await this.getAudio(key, { silentMissing: true });
     if (!source) {
       return;
     }
@@ -215,6 +259,7 @@ class AudioManager {
       audio.pause();
       audio.currentTime = 0;
     });
+    this.backgroundPlaying = false;
   }
 }
 
@@ -239,21 +284,36 @@ export function setupAudioControls() {
   const volume = root.querySelector("#volume-control");
   const status = root.querySelector("#sound-status");
   audioManager.setStatusElement(status);
+  audioManager.setToggleElement(toggle);
+  audioManager.startBackgroundOnLoad(BACKGROUND_KEY);
 
   toggle.addEventListener("click", async () => {
-    await audioManager.unlock();
     const enabled = toggle.getAttribute("aria-pressed") !== "true";
-    toggle.setAttribute("aria-pressed", String(enabled));
-    toggle.textContent = enabled ? "Som Ligado" : "Som Desligado";
     audioManager.setEnabled(enabled);
+    if (enabled) {
+      await audioManager.unlock();
+    }
   });
 
-  volume.addEventListener("input", (event) => {
+  volume.addEventListener("pointerdown", () => {
+    audioManager.unlock();
+  });
+
+  volume.addEventListener("input", async (event) => {
     audioManager.setVolume(event.target.value);
+    await audioManager.unlock();
   });
 
   window.addEventListener(
     "pointerdown",
+    () => {
+      audioManager.unlock();
+    },
+    { once: true }
+  );
+
+  window.addEventListener(
+    "keydown",
     () => {
       audioManager.unlock();
     },
