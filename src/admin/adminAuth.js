@@ -1,5 +1,7 @@
 import { isSupabaseConfigured, supabase } from "../supabase.js";
 
+export const ADMIN_ACCESS_DENIED_MESSAGE = "Acesso negado. Usuário não autorizado como administrador.";
+
 export async function getCurrentSession() {
   if (!isSupabaseConfigured()) {
     return null;
@@ -20,6 +22,34 @@ export function onAdminAuthChange(callback) {
 
   const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
   return () => data.subscription.unsubscribe();
+}
+
+export async function getAdminProfile(session) {
+  if (!isSupabaseConfigured() || !session?.user?.id) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("app_admins")
+    .select("id, user_id, email")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || "Não foi possível validar o administrador.");
+  }
+
+  return data;
+}
+
+export async function requireAdminSession(session) {
+  const profile = await getAdminProfile(session);
+
+  if (!profile) {
+    throw new Error(ADMIN_ACCESS_DENIED_MESSAGE);
+  }
+
+  return profile;
 }
 
 export async function signInAdmin(email, password) {
