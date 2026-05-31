@@ -6,3 +6,5 @@ Arquivos usados pela identidade visual:
 O app usa esses caminhos automaticamente. As versões SVG atuais evitam erro 404 e podem ser substituídas pela arte oficial.
 
 Para evitar imagem borrada, prefira SVG. Se usar PNG, exporte a logo completa com pelo menos 1440x480 e o icone com pelo menos 512x512.
+
+O Phaser carrega `logo-missao-5s.svg` como textura de 1440x480. Se a logo oficial vier em SVG, basta manter este nome para preservar nitidez.
