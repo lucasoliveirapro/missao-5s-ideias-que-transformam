@@ -334,7 +334,7 @@ Para manter a logo nítida no celular, prefira SVG. Se usar PNG, exporte em alta
 - ícone: mínimo recomendado de `512x512`
 - favicon: mínimo recomendado de `128x128`
 
-Se a campanha tiver arquivos oficiais em PNG, substitua os SVGs ou ajuste as referências em `index.html`, `admin.html` e `src/scenes/BootScene.js`.
+O Phaser carrega a logo por `this.load.svg(...)` com rasterização em `1440x480`, então o melhor fluxo é substituir `public/assets/images/logo-missao-5s.svg` pela arte oficial em SVG. Se a campanha tiver arquivos oficiais em PNG, ajuste as referências em `index.html`, `admin.html` e `src/scenes/BootScene.js`.
 
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
