@@ -43,23 +43,31 @@ export default class HomeScene extends Phaser.Scene {
     this.children.removeAll(true);
     const { width, height } = this.scale;
     const centerX = width / 2;
-    const top = Math.max(72, height * 0.11);
+    const isMobile = width < 720;
+    const isShortViewport = isMobile && height < 680;
+    const top = isMobile ? (isShortViewport ? 54 : 66) : Math.max(72, height * 0.11);
+    const titleY = top + (isMobile ? (isShortViewport ? 78 : 92) : 104);
+    const subtitleY = titleY + (isMobile ? 56 : 74);
+    const descriptionY = subtitleY + (isMobile ? 34 : 40);
+    const scoreboardY = descriptionY + (isMobile ? 58 : 56);
 
     this.drawBackground(width, height);
-    this.drawLogo(centerX, top, width);
+    this.drawLogo(centerX, top, width, isMobile);
 
+    const titleText = isMobile ? "Copa 5S\nFunilaria Goiana" : "Copa 5S — Funilaria Goiana";
     this.add
-      .text(centerX, top + 104, "Copa 5S — Funilaria Goiana", {
+      .text(centerX, titleY, titleText, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(46, Math.max(30, width * 0.062))}px`,
+        fontSize: `${Math.min(isMobile ? 28 : 46, Math.max(isMobile ? 22 : 30, width * (isMobile ? 0.062 : 0.062)))}px`,
         fontStyle: "900",
         color: "#ffffff",
         align: "center",
+        lineSpacing: isMobile ? 4 : 0,
         wordWrap: { width: Math.min(900, width - 32) }
       })
       .setOrigin(0.5);
 
-    const shine = this.add.rectangle(centerX, top + 143, Math.min(520, width - 56), 4, COLORS.gold, 0.95);
+    const shine = this.add.rectangle(centerX, titleY + (isMobile ? 33 : 39), Math.min(520, width - 56), 4, COLORS.gold, 0.95);
     this.tweens.add({
       targets: shine,
       alpha: { from: 0.35, to: 1 },
@@ -71,9 +79,9 @@ export default class HomeScene extends Phaser.Scene {
     });
 
     this.add
-      .text(centerX, top + 178, "Entre em campo com sua ideia!", {
+      .text(centerX, subtitleY, "Entre em campo com sua ideia!", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(26, Math.max(18, width * 0.035))}px`,
+        fontSize: `${Math.min(isMobile ? 22 : 26, Math.max(17, width * 0.035))}px`,
         fontStyle: "800",
         color: "#f4c430",
         align: "center"
@@ -81,20 +89,23 @@ export default class HomeScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, top + 218, "Lance melhorias, descreva o local e ajude a Funilaria a subir de nível.", {
+      .text(centerX, descriptionY, "Lance melhorias, descreva o local e ajude a Funilaria a subir de nível.", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(20, Math.max(15, width * 0.025))}px`,
+        fontSize: `${Math.min(isMobile ? 17 : 20, Math.max(14, width * 0.025))}px`,
         color: "#eef7ff",
         align: "center",
         wordWrap: { width: Math.min(760, width - 44) }
       })
       .setOrigin(0.5);
 
-    this.drawScoreboard(centerX, top + 274, Math.min(500, width - 42));
+    this.drawScoreboard(centerX, scoreboardY, Math.min(500, width - 42), isMobile);
 
     const buttonWidth = Math.min(350, width - 48);
-    const buttonY = Math.min(height - 155, top + 370);
-    this.createButton(centerX, buttonY, buttonWidth, 58, "Entrar em Campo", COLORS.orange, () => {
+    const buttonHeight = isMobile ? 52 : 58;
+    const buttonGap = isMobile ? 64 : 76;
+    const footerReserve = isMobile ? (isShortViewport ? 44 : 58) : 155;
+    const buttonY = Math.min(height - footerReserve - buttonHeight - buttonGap / 2, scoreboardY + (isMobile ? 82 : 96));
+    this.createButton(centerX, buttonY, buttonWidth, buttonHeight, "Entrar em Campo", COLORS.orange, () => {
       audioManager.unlock();
       audioManager.playEffect("whistle");
       const participant = getStoredParticipant();
@@ -108,33 +119,39 @@ export default class HomeScene extends Phaser.Scene {
       });
     });
 
-    this.createButton(centerX, buttonY + 76, buttonWidth, 58, "Ver Ranking da Copa 5S", COLORS.steel, () => {
+    this.createButton(centerX, buttonY + buttonGap, buttonWidth, buttonHeight, "Ver Ranking da Copa 5S", COLORS.steel, () => {
       audioManager.unlock();
       this.scene.start("RankingScene", { from: "HomeScene" });
     });
 
-    this.add
-      .text(centerX, height - 54, "SIS • Funilaria • 5S", {
-        fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: "14px",
-        fontStyle: "800",
-        color: "#dbe8f6",
-        align: "center"
-      })
-      .setOrigin(0.5);
+    if (!isMobile || height >= 650) {
+      this.add
+        .text(centerX, height - (isMobile ? 40 : 54), "SIS • Funilaria • 5S", {
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: isMobile ? "12px" : "14px",
+          fontStyle: "800",
+          color: "#dbe8f6",
+          align: "center"
+        })
+        .setOrigin(0.5);
+    }
 
     this.drawCreditFooter(width, height);
   }
 
   drawCreditFooter(width, height) {
-    const footerY = Math.max(20, height - 14);
+    const compact = width < 520 || height < 640;
+    const footerY = Math.max(20, height - (compact ? 7 : 14));
+    const text = compact
+      ? "Copa 5S — Funilaria Goiana • Lucas Oliveira — Team Leader AM."
+      : PUBLIC_CREDIT;
     this.add
-      .text(width / 2, footerY, PUBLIC_CREDIT, {
+      .text(width / 2, footerY, text, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${width < 620 ? 9 : 10}px`,
+        fontSize: `${compact ? 8 : width < 620 ? 9 : 10}px`,
         color: "#dbe8f6",
         align: "center",
-        lineSpacing: 2,
+        lineSpacing: compact ? 0 : 2,
         wordWrap: { width: Math.min(820, width - 28) }
       })
       .setOrigin(0.5, 1)
@@ -158,24 +175,26 @@ export default class HomeScene extends Phaser.Scene {
       this.add.rectangle(width / 2, height * 0.11 + index * 58, width * 0.95, 2, COLORS.white, 0.03 + index * 0.006);
     }
 
-    this.drawTrophy(width * 0.82, height * 0.2, Math.min(78, width * 0.16));
-    this.drawBall(width * 0.18, height * 0.31, Math.min(42, width * 0.09));
+    if (width >= 520) {
+      this.drawTrophy(width * 0.82, height * 0.2, Math.min(78, width * 0.16));
+      this.drawBall(width * 0.18, height * 0.31, Math.min(42, width * 0.09));
+    }
     this.drawFlags(width, height);
   }
 
-  drawLogo(x, y, width) {
+  drawLogo(x, y, width, compact = false) {
     if (this.textures.exists("logo-missao-5s")) {
       const logo = this.add.image(x, y, "logo-missao-5s");
-      this.fitImage(logo, Math.min(250, width * 0.58), Math.min(92, width * 0.22));
+      this.fitImage(logo, Math.min(compact ? 190 : 250, width * 0.58), Math.min(compact ? 62 : 92, width * 0.22));
       logo.setAlpha(0.98);
       return;
     }
 
-    this.add.rectangle(x, y, Math.min(270, width - 52), 72, COLORS.navy2, 0.95).setStrokeStyle(3, COLORS.gold, 0.9);
+    this.add.rectangle(x, y, Math.min(compact ? 218 : 270, width - 52), compact ? 58 : 72, COLORS.navy2, 0.95).setStrokeStyle(3, COLORS.gold, 0.9);
     this.add
       .text(x, y, "MISSÃO 5S\nFUNILARIA GOIANA", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(22, Math.max(16, width * 0.038))}px`,
+        fontSize: `${Math.min(compact ? 18 : 22, Math.max(14, width * 0.038))}px`,
         fontStyle: "900",
         color: "#ffffff",
         align: "center"
@@ -183,17 +202,18 @@ export default class HomeScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  drawScoreboard(x, y, width) {
-    this.add.rectangle(x, y, width, 62, COLORS.navy2, 0.94).setStrokeStyle(2, COLORS.gold, 0.72);
+  drawScoreboard(x, y, width, compact = false) {
+    const height = compact ? 54 : 62;
+    this.add.rectangle(x, y, width, height, COLORS.navy2, 0.94).setStrokeStyle(2, COLORS.gold, 0.72);
     this.add.text(x - width * 0.36, y, "5S", {
       fontFamily: "Arial, Helvetica, sans-serif",
-      fontSize: "20px",
+      fontSize: compact ? "17px" : "20px",
       fontStyle: "900",
       color: "#f4c430"
     }).setOrigin(0.5);
     this.add.text(x, y, "Cada ideia é um gol para a Funilaria.", {
       fontFamily: "Arial, Helvetica, sans-serif",
-      fontSize: "15px",
+      fontSize: compact ? "13px" : "15px",
       fontStyle: "800",
       color: "#ffffff",
       align: "center",

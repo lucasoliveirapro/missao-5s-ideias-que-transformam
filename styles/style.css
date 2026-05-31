@@ -162,6 +162,7 @@ button {
   gap: 7px;
   color: var(--navy);
   font-weight: 700;
+  min-width: 0;
 }
 
 .stacked-form input,
@@ -373,6 +374,7 @@ button {
 
 .rank-person strong {
   color: var(--navy);
+  overflow-wrap: anywhere;
 }
 
 .rank-person span,
@@ -555,7 +557,7 @@ button {
   .modal-heading,
   .success-card,
   .stacked-form {
-    padding: 14px;
+    padding: 12px;
   }
 
   .modal-heading h2,
@@ -569,7 +571,20 @@ button {
   }
 
   .stacked-form {
-    gap: 11px;
+    gap: 10px;
+  }
+
+  .stacked-form input,
+  .stacked-form select,
+  .stacked-form textarea,
+  .ranking-filters input,
+  .ranking-filters select {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .stacked-form textarea {
+    min-height: 96px;
   }
 
   .idea-card .form-actions {
@@ -595,15 +610,31 @@ button {
   }
 
   .ranking-panel {
-    max-height: 54vh;
+    max-height: 55dvh;
+    padding: 14px 12px max(14px, env(safe-area-inset-bottom));
   }
 
   .ranking-panel-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .ranking-panel-header h2 {
+    font-size: clamp(1.05rem, 6vw, 1.45rem);
+    line-height: 1.1;
+  }
+
+  .ranking-panel-header .ghost-button {
+    min-height: 42px;
+    padding: 0 14px;
   }
 
   .ranking-filters {
     grid-template-columns: 1fr;
+    gap: 9px;
   }
 
   .ranking-row {
@@ -626,25 +657,68 @@ button {
     font-size: 0.72rem;
   }
 
+  .rank-person span {
+    font-size: 0.74rem;
+  }
+
   .rank-date {
     grid-column: 2 / -1;
     justify-self: stretch;
   }
 
   .sound-controls {
-    left: 10px;
-    right: 10px;
-    top: auto;
-    bottom: max(10px, env(safe-area-inset-bottom));
-    justify-content: space-between;
+    left: auto;
+    right: max(8px, env(safe-area-inset-right));
+    top: max(8px, env(safe-area-inset-top));
+    bottom: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    width: min(112px, calc(100% - 16px));
+    padding: 6px;
+    border-radius: 7px;
+  }
+
+  .sound-controls button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 0.78rem;
+  }
+
+  .sound-controls label {
+    grid-template-columns: 1fr;
+    align-items: center;
+    gap: 0;
+    font-size: 0;
+  }
+
+  .sound-controls input {
+    width: 100%;
+    min-width: 0;
   }
 
   .sound-status {
-    max-width: 92px;
-    text-align: right;
+    display: none;
   }
 
   .toast-root {
-    bottom: 72px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 420px) {
+  .ranking-row {
+    grid-template-columns: 38px minmax(0, 1fr) 52px 52px;
+    padding: 8px;
+  }
+
+  .rank-position {
+    width: 36px;
+    height: 36px;
+    font-size: 0.82rem;
+  }
+
+  .sound-controls {
+    width: min(108px, calc(100% - 16px));
   }
 }

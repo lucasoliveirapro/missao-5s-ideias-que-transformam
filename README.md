@@ -322,12 +322,13 @@ A limpeza apaga `ideas` e `participants`.
 
 ## 17. Logo, favicon e áudios opcionais
 
-Coloque os arquivos oficiais da campanha nestes caminhos:
+O projeto já inclui versões SVG leves para evitar erro 404 quando a logo oficial ainda não foi anexada:
 
-- `public/assets/images/logo-missao-5s.png`
-- `public/assets/images/logo-missao-5s-icon.png`
-- `public/favicon.png`
-- `public/favicon.ico`
+- `public/assets/images/logo-missao-5s.svg`
+- `public/assets/images/logo-missao-5s-icon.svg`
+- `public/favicon.svg`
+
+Se a campanha tiver arquivos oficiais em PNG, substitua os SVGs ou ajuste as referências em `index.html`, `admin.html` e `src/scenes/BootScene.js`.
 
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
