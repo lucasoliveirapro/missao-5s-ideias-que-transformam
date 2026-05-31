@@ -325,3 +325,50 @@ Se os arquivos não existirem, o app usa fallback silencioso e continua funciona
 - Mantenha RLS ativo.
 - Para restringir admin com mais rigor, crie uma tabela de perfis/claims administrativos e ajuste as políticas.
 - Para pontuação totalmente confiável, mova o cálculo para SQL/RPC ou Edge Function.
+
+## Créditos do Projeto
+
+### Missão 5S: Ideias que Transformam
+
+Sistema gamificado desenvolvido para incentivar os colaboradores da Funilaria Goiana a registrarem ideias de melhoria, fortalecerem o 5S no dia a dia e contribuírem com a organização, limpeza, saúde, disciplina e melhoria contínua.
+
+### Projeto desenvolvido para
+
+Campanha Copa 5S — Funilaria Goiana
+
+### Idealização e desenvolvimento
+
+Lucas Oliveira — Team Leader AM
+
+### Objetivo
+
+Estimular a participação dos colaboradores por meio do lançamento de ideias de melhoria 5S, com ranking, pontuação e acompanhamento das oportunidades registradas.
+
+### Tecnologias utilizadas
+
+- Phaser 4
+- Vite
+- JavaScript
+- Supabase
+- Supabase Auth
+- Supabase Database/Postgres
+- Vercel
+- GitHub
+
+### Músicas e efeitos sonoros
+
+Músicas e efeitos sonoros utilizados conforme licenças dos respectivos autores/plataformas.
+
+Vozes geradas com ElevenLabs, quando aplicável.
+
+- musica-fundo.mp3:
+- ideia-enviada.mp3:
+- ranking.mp3:
+- top3.mp3:
+- gol-de-ideia.mp3:
+- torcida.mp3:
+- apito.mp3:
+
+### Uso interno
+
+Sistema criado para uso interno em campanha de melhoria contínua, com foco em engajamento, 5S e cultura SIS.

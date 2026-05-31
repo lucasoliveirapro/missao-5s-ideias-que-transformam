@@ -47,10 +47,13 @@ button {
 
 .admin-shell {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .login-panel {
-  min-height: 100vh;
+  min-height: calc(100vh - 54px);
+  flex: 1;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -173,8 +176,21 @@ button:disabled {
 
 .admin-panel {
   width: min(1180px, calc(100% - 28px));
+  flex: 1;
   margin: 0 auto;
   padding: 24px 0 40px;
+}
+
+.admin-footer {
+  width: min(1180px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 14px 0 max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(16, 44, 74, 0.1);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .admin-topbar {
