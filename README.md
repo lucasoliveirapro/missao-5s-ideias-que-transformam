@@ -327,6 +327,8 @@ O projeto já inclui versões SVG leves para evitar erro 404 quando a logo ofici
 - `public/assets/images/logo-missao-5s.svg`
 - `public/assets/images/logo-missao-5s-icon.svg`
 - `public/favicon.svg`
+- opcional: `public/assets/images/logo-missao-5s.png`
+- opcional: `public/assets/images/logo-missao-5s-icon.png`
 
 Para manter a logo nítida no celular, prefira SVG. Se usar PNG, exporte em alta resolução:
 
@@ -334,7 +336,7 @@ Para manter a logo nítida no celular, prefira SVG. Se usar PNG, exporte em alta
 - ícone: mínimo recomendado de `512x512`
 - favicon: mínimo recomendado de `128x128`
 
-O Phaser carrega a logo por `this.load.svg(...)` com rasterização em `1440x480`, então o melhor fluxo é substituir `public/assets/images/logo-missao-5s.svg` pela arte oficial em SVG. Se a campanha tiver arquivos oficiais em PNG, ajuste as referências em `index.html`, `admin.html` e `src/scenes/BootScene.js`.
+O Phaser procura primeiro por `logo-missao-5s.png` e `logo-missao-5s-icon.png`. Se esses arquivos não existirem, usa os SVGs como fallback. Para máxima nitidez, o melhor fluxo é substituir `public/assets/images/logo-missao-5s.svg` pela arte oficial em SVG; se a arte oficial vier em PNG, salve nos nomes opcionais acima em alta resolução.
 
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
