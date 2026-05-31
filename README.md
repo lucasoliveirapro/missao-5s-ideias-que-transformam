@@ -124,6 +124,13 @@ create table if not exists public.ideas (
   )
 );
 
+create table if not exists public.app_admins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  email text not null unique,
+  criado_em timestamptz not null default now()
+);
+
 create index if not exists participants_ranking_idx
   on public.participants (total_ideias desc, total_pontos desc, ultima_participacao asc);
 
@@ -142,9 +149,18 @@ create index if not exists ideas_filters_idx
 1. Abra **Authentication > Users**.
 2. Clique em **Add user**.
 3. Informe e-mail e senha.
-4. Use esse login em `/admin.html`.
+4. Copie o `id` do usuário criado.
+5. Cadastre esse usuário na tabela `app_admins`.
+6. Use esse login em `/admin.html`.
 
-Esta versão considera todo usuário autenticado como administrador. Crie apenas contas administrativas no Supabase Auth.
+O painel administrativo só é liberado para usuários autenticados que também existam em `app_admins`.
+
+Exemplo:
+
+```sql
+insert into public.app_admins (user_id, email)
+values ('ID_DO_USUARIO_AUTH', 'admin@empresa.com');
+```
 
 ## 11. Row Level Security
 
@@ -153,10 +169,12 @@ Execute depois das tabelas:
 ```sql
 alter table public.participants enable row level security;
 alter table public.ideas enable row level security;
+alter table public.app_admins enable row level security;
 
 grant select, insert, update on public.participants to anon, authenticated;
 grant insert on public.ideas to anon;
 grant select, update, delete on public.ideas to authenticated;
+grant select on public.app_admins to authenticated;
 
 drop policy if exists "public_read_ranking" on public.participants;
 create policy "public_read_ranking"
@@ -243,6 +261,13 @@ on public.ideas
 for delete
 to authenticated
 using (true);
+
+drop policy if exists "admin_read_own_record" on public.app_admins;
+create policy "admin_read_own_record"
+on public.app_admins
+for select
+to authenticated
+using (auth.uid() = user_id);
 ```
 
 Observação: sem backend próprio, o front-end ainda calcula incremento de pontos. Para segurança corporativa forte, o ideal é mover pontuação e bônus para uma função SQL/RPC `security definer` ou Edge Function validada no servidor.

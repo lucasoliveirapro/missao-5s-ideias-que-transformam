@@ -11,16 +11,27 @@ import {
   participantPoints,
   sortParticipants
 } from "../utils.js";
-import { getCurrentSession, onAdminAuthChange, signInAdmin, signOutAdmin } from "./adminAuth.js";
+import {
+  ADMIN_ACCESS_DENIED_MESSAGE,
+  getCurrentSession,
+  onAdminAuthChange,
+  requireAdminSession,
+  signInAdmin,
+  signOutAdmin
+} from "./adminAuth.js";
 import { clearEventData, loadAdminData, updateIdeaStatus } from "./adminIdeas.js";
 import { exportIdeasCsv } from "./adminExport.js";
 
 let state = {
   session: null,
+  adminProfile: null,
   ideas: [],
   participants: [],
   filteredIdeas: []
 };
+
+let authCheckId = 0;
+let preservedAuthMessage = "";
 
 const loginPanel = document.getElementById("admin-login-panel");
 const appPanel = document.getElementById("admin-app-panel");
@@ -47,6 +58,21 @@ function setNotice(message, type = "info") {
 function setLoggedIn(loggedIn) {
   loginPanel.hidden = loggedIn;
   appPanel.hidden = !loggedIn;
+}
+
+function clearAdminState() {
+  state = {
+    ...state,
+    session: null,
+    adminProfile: null,
+    ideas: [],
+    participants: [],
+    filteredIdeas: []
+  };
+  summary.innerHTML = "";
+  list.innerHTML = "";
+  countLabel.textContent = "0 registros";
+  setNotice("");
 }
 
 function fillFilter(select, options, allLabel) {
@@ -203,14 +229,61 @@ async function handleLogin(event) {
   button.textContent = "Entrando...";
 
   try {
-    state.session = await signInAdmin(formData.get("email"), formData.get("password"));
-    setLoggedIn(true);
-    await refreshData();
+    await signInAdmin(formData.get("email"), formData.get("password"));
+    const session = await getCurrentSession();
+    await handleAdminSession(session);
   } catch (error) {
     loginError.textContent = error.message || "Não foi possível entrar.";
   } finally {
     button.disabled = false;
     button.textContent = "Entrar";
+  }
+}
+
+async function handleAdminSession(session) {
+  const currentCheck = ++authCheckId;
+  setNotice("");
+
+  if (!session) {
+    const message = preservedAuthMessage;
+    preservedAuthMessage = "";
+    clearAdminState();
+    setLoggedIn(false);
+    loginError.textContent = message;
+    return;
+  }
+
+  clearAdminState();
+  setLoggedIn(false);
+  loginError.textContent = "Validando permissão administrativa...";
+
+  try {
+    const adminProfile = await requireAdminSession(session);
+
+    if (currentCheck !== authCheckId) {
+      return;
+    }
+
+    state.session = session;
+    state.adminProfile = adminProfile;
+    loginError.textContent = "";
+    setLoggedIn(true);
+    await refreshData();
+  } catch (error) {
+    if (currentCheck !== authCheckId) {
+      return;
+    }
+
+    const message = error.message || ADMIN_ACCESS_DENIED_MESSAGE;
+    clearAdminState();
+    setLoggedIn(false);
+    loginError.textContent = message;
+
+    if (message === ADMIN_ACCESS_DENIED_MESSAGE) {
+      preservedAuthMessage = ADMIN_ACCESS_DENIED_MESSAGE;
+      await signOutAdmin().catch(() => {});
+      loginError.textContent = ADMIN_ACCESS_DENIED_MESSAGE;
+    }
   }
 }
 
@@ -226,7 +299,10 @@ async function bootAdmin() {
 
   loginForm.addEventListener("submit", handleLogin);
   signOutButton.addEventListener("click", async () => {
+    preservedAuthMessage = "";
+    loginError.textContent = "";
     await signOutAdmin();
+    clearAdminState();
     setLoggedIn(false);
   });
   exportButton.addEventListener("click", () => exportIdeasCsv(state.ideas));
@@ -247,19 +323,16 @@ async function bootAdmin() {
     }
   });
 
-  onAdminAuthChange(async (session) => {
-    state.session = session;
-    setLoggedIn(Boolean(session));
-    if (session) {
-      await refreshData();
-    }
+  onAdminAuthChange((session) => {
+    handleAdminSession(session).catch((error) => {
+      clearAdminState();
+      setLoggedIn(false);
+      loginError.textContent = error.message || "Erro ao validar a sessão.";
+    });
   });
 
   state.session = await getCurrentSession();
-  setLoggedIn(Boolean(state.session));
-  if (state.session) {
-    await refreshData();
-  }
+  await handleAdminSession(state.session);
 }
 
 bootAdmin().catch((error) => {
