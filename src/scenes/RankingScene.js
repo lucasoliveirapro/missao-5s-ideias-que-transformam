@@ -7,6 +7,7 @@ import {
   getStoredParticipant,
   participantIdeas,
   participantPoints,
+  sharpenSceneText,
   shouldPauseCanvasResize
 } from "../utils.js";
 import { observeParticipants } from "../ui/ideas.js";
@@ -107,6 +108,7 @@ export default class RankingScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.renderTop3();
+    sharpenSceneText(this);
   }
 
   getTitleY(width, height) {
@@ -204,6 +206,7 @@ export default class RankingScene extends Phaser.Scene {
 
     group.add(this.add.rectangle(width / 2, y + cardHeight / 2 + 38, Math.min(width - 48, 720), 4, COLORS.orange, 0.9));
     this.drawCreditFooter(width, visibleTopHeight);
+    sharpenSceneText(this);
   }
 
   renderCompactTop3(group, top3, titleY, visibleTopHeight) {
@@ -288,6 +291,7 @@ export default class RankingScene extends Phaser.Scene {
       group.add(this.add.rectangle(width / 2, visibleTopHeight - 24, Math.min(width - 42, 330), 3, COLORS.orange, 0.9));
     }
     this.drawCreditFooter(width, visibleTopHeight);
+    sharpenSceneText(this);
   }
 
   drawCreditFooter(width, visibleTopHeight) {
