@@ -89,7 +89,7 @@ export default class RankingScene extends Phaser.Scene {
     this.add
       .text(width / 2, titleY, "TABELA DA COPA 5S", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(36, Math.max(23, width * 0.045))}px`,
+        fontSize: `${Math.min(width < 520 ? 25 : 36, Math.max(width < 520 ? 20 : 23, width * 0.045))}px`,
         fontStyle: "900",
         color: "#ffffff",
         align: "center"
@@ -99,7 +99,7 @@ export default class RankingScene extends Phaser.Scene {
     this.add
       .text(width / 2, titleY + 38, "Artilheiros de Ideias", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(22, Math.max(16, width * 0.029))}px`,
+        fontSize: `${Math.min(width < 520 ? 18 : 22, Math.max(15, width * 0.029))}px`,
         fontStyle: "900",
         color: "#f4c430",
         align: "center"
@@ -111,8 +111,16 @@ export default class RankingScene extends Phaser.Scene {
 
   getTitleY(width, height) {
     const isMobile = width < 700;
-    const visibleTopHeight = height * (isMobile ? 0.46 : 0.54);
+    const visibleTopHeight = this.getTopAreaHeight(width, height);
     return Math.max(isMobile ? 52 : 44, Math.min(76, visibleTopHeight * 0.16));
+  }
+
+  getTopAreaHeight(width, height) {
+    if (width < 520) {
+      return Math.max(248, Math.min(318, height * 0.46));
+    }
+
+    return height * (width < 700 ? 0.46 : 0.54);
   }
 
   renderTop3() {
@@ -127,7 +135,11 @@ export default class RankingScene extends Phaser.Scene {
 
     const isMobile = width < 700;
     const titleY = this.getTitleY(width, height);
-    const visibleTopHeight = height * (isMobile ? 0.46 : 0.54);
+    const visibleTopHeight = this.getTopAreaHeight(width, height);
+    if (width < 520) {
+      this.renderCompactTop3(group, top3, titleY, visibleTopHeight);
+      return;
+    }
     const cardWidth = isMobile ? Math.min(190, (width - 36) / 3) : Math.min(260, (width - 80) / 3);
     const cardHeight = isMobile
       ? Math.min(136, Math.max(102, visibleTopHeight - titleY - 92))
@@ -194,18 +206,106 @@ export default class RankingScene extends Phaser.Scene {
     this.drawCreditFooter(width, visibleTopHeight);
   }
 
+  renderCompactTop3(group, top3, titleY, visibleTopHeight) {
+    const { width } = this.scale;
+    const colors = [COLORS.gold, COLORS.silver, COLORS.bronze];
+    const leader = top3[0];
+    const leaderWidth = Math.min(width - 42, 308);
+    const leaderHeight = 104;
+    const leaderY = titleY + 104;
+
+    group.add(this.add.rectangle(width / 2, leaderY, leaderWidth, leaderHeight, COLORS.panel, 0.96).setStrokeStyle(2, COLORS.gold, 0.9));
+    this.drawSmallTrophy(group, width / 2, leaderY - 38, 18);
+    this.drawMedal(group, width / 2, leaderY - 18, 1, COLORS.gold, true, true);
+    group.add(
+      this.add
+        .text(width / 2, leaderY + 18, leader?.nome || "Aguardando ideias", {
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: "14px",
+          fontStyle: "900",
+          color: "#ffffff",
+          align: "center",
+          wordWrap: { width: leaderWidth - 24 }
+        })
+        .setOrigin(0.5)
+    );
+    group.add(
+      this.add
+        .text(
+          width / 2,
+          leaderY + 42,
+          leader ? `${formatNumber(participantIdeas(leader))} gols • ${formatNumber(participantPoints(leader))} pts` : "0 gols • 0 pts",
+          {
+            fontFamily: "Arial, Helvetica, sans-serif",
+            fontSize: "11px",
+            fontStyle: "800",
+            color: "#dbe8f6",
+            align: "center"
+          }
+        )
+        .setOrigin(0.5)
+    );
+
+    const miniWidth = Math.min((width - 54) / 2, 152);
+    const miniHeight = 66;
+    const miniY = Math.min(visibleTopHeight - 45, leaderY + 88);
+    [1, 2].forEach((rankIndex, index) => {
+      const participant = top3[rankIndex];
+      const x = width / 2 + (index === 0 ? -miniWidth / 2 - 7 : miniWidth / 2 + 7);
+      group.add(this.add.rectangle(x, miniY, miniWidth, miniHeight, COLORS.panel, 0.92).setStrokeStyle(2, colors[rankIndex], 0.78));
+      this.drawMedal(group, x - miniWidth / 2 + 28, miniY - 10, rankIndex + 1, colors[rankIndex], false, true);
+      group.add(
+        this.add
+          .text(x + 18, miniY - 8, participant?.nome || "Aguardando", {
+            fontFamily: "Arial, Helvetica, sans-serif",
+            fontSize: "10px",
+            fontStyle: "900",
+            color: "#ffffff",
+            align: "center",
+            wordWrap: { width: miniWidth - 58 }
+          })
+          .setOrigin(0.5)
+      );
+      group.add(
+        this.add
+          .text(
+            x + 18,
+            miniY + 18,
+            participant ? `${formatNumber(participantIdeas(participant))} gols` : "0 gols",
+            {
+              fontFamily: "Arial, Helvetica, sans-serif",
+              fontSize: "9px",
+              fontStyle: "800",
+              color: "#dbe8f6",
+              align: "center"
+            }
+          )
+          .setOrigin(0.5)
+      );
+    });
+
+    if (visibleTopHeight - (miniY + miniHeight / 2) > 30) {
+      group.add(this.add.rectangle(width / 2, visibleTopHeight - 24, Math.min(width - 42, 330), 3, COLORS.orange, 0.9));
+    }
+    this.drawCreditFooter(width, visibleTopHeight);
+  }
+
   drawCreditFooter(width, visibleTopHeight) {
     if (this.creditText?.scene) {
       this.creditText.destroy();
     }
 
+    const compact = width < 520;
+    const text = compact
+      ? "Copa 5S — Funilaria Goiana • Lucas Oliveira — Team Leader AM."
+      : PUBLIC_CREDIT;
     this.creditText = this.add
-      .text(width / 2, visibleTopHeight - 10, PUBLIC_CREDIT, {
+      .text(width / 2, visibleTopHeight - (compact ? 5 : 10), text, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${width < 620 ? 8 : 10}px`,
+        fontSize: `${compact ? 7 : width < 620 ? 8 : 10}px`,
         color: "#dbe8f6",
         align: "center",
-        lineSpacing: 1,
+        lineSpacing: compact ? 0 : 1,
         wordWrap: { width: Math.min(820, width - 28) }
       })
       .setOrigin(0.5, 1)

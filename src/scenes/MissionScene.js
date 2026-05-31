@@ -91,8 +91,9 @@ export default class MissionScene extends Phaser.Scene {
     const centerX = width / 2;
     const contentWidth = Math.min(960, width - 28);
     const isMobile = width < 720;
-    const isShortViewport = isMobile && height < 640;
-    const top = isShortViewport ? 66 : Math.max(78, Math.min(110, height * 0.12));
+    const isShortViewport = isMobile && height < 680;
+    const top = isMobile ? (isShortViewport ? 58 : 72) : Math.max(78, Math.min(110, height * 0.12));
+    const showMotivation = !isMobile || height >= 760;
 
     this.drawBackground(width, height);
     this.drawLogo(width, height);
@@ -100,7 +101,7 @@ export default class MissionScene extends Phaser.Scene {
     this.add
       .text(centerX, top - 34, "Sua escalação 5S", {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: "18px",
+        fontSize: isMobile ? "15px" : "18px",
         fontStyle: "900",
         color: "#f4c430",
         align: "center"
@@ -110,7 +111,7 @@ export default class MissionScene extends Phaser.Scene {
     this.add
       .text(centerX, top, this.participant.nome, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(31, Math.max(22, width * 0.04))}px`,
+        fontSize: `${Math.min(isMobile ? 24 : 31, Math.max(isMobile ? 18 : 22, width * 0.04))}px`,
         fontStyle: "900",
         color: "#ffffff",
         align: "center",
@@ -128,36 +129,41 @@ export default class MissionScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const statsY = top + (isShortViewport ? 108 : 118);
-    const postStatsY = isMobile ? statsY + (isShortViewport ? 148 : 166) : top + 230;
+    const statsY = top + (isShortViewport ? 92 : 112);
+    const postStatsY = isMobile ? statsY + (isShortViewport ? 132 : 154) : top + 230;
     this.drawStats(centerX, statsY, contentWidth);
 
-    this.add
-      .text(centerX, postStatsY, "Cada melhoria registrada fortalece o 5S no dia a dia.", {
-        fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${Math.min(22, Math.max(17, width * 0.03))}px`,
-        fontStyle: "900",
-        color: "#ffffff",
-        align: "center",
-        wordWrap: { width: contentWidth }
-      })
-      .setOrigin(0.5);
-
     if (!isShortViewport) {
+      this.add
+        .text(centerX, postStatsY, "Cada melhoria registrada fortalece o 5S no dia a dia.", {
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontSize: `${Math.min(isMobile ? 18 : 22, Math.max(16, width * 0.03))}px`,
+          fontStyle: "900",
+          color: "#ffffff",
+          align: "center",
+          wordWrap: { width: contentWidth }
+        })
+        .setOrigin(0.5);
+    }
+
+    if (showMotivation) {
       this.drawMotivationPanel(centerX, postStatsY + 48, Math.min(680, width - 34));
     }
 
     const buttonWidth = Math.min(340, width - 48);
-    const startY = Math.min(height - (isShortViewport ? 230 : 226), postStatsY + (isShortViewport ? 62 : 136));
-    this.createButton(centerX, startY, buttonWidth, 58, "Marcar um Gol de Ideia", COLORS.orange, () => {
+    const primaryButtonHeight = isMobile ? 52 : 58;
+    const secondaryButtonHeight = isMobile ? 48 : 54;
+    const buttonGap = isMobile ? 62 : 74;
+    const startY = Math.min(height - (isMobile ? 198 : 226), postStatsY + (showMotivation ? 132 : isShortViewport ? 50 : 74));
+    this.createButton(centerX, startY, buttonWidth, primaryButtonHeight, "Marcar um Gol de Ideia", COLORS.orange, () => {
       audioManager.unlock();
       this.openIdeaForm();
     });
-    this.createButton(centerX, startY + 74, buttonWidth, 54, "Ver Ranking", COLORS.steel, () => {
+    this.createButton(centerX, startY + buttonGap, buttonWidth, secondaryButtonHeight, "Ver Ranking", COLORS.steel, () => {
       audioManager.unlock();
       this.scene.start("RankingScene", { from: "MissionScene" });
     });
-    this.createButton(centerX, startY + 142, buttonWidth, 52, "Trocar Participante", COLORS.panel, () => {
+    this.createButton(centerX, startY + buttonGap * 2, buttonWidth, secondaryButtonHeight, "Trocar Participante", COLORS.panel, () => {
       clearStoredParticipant();
       showRegistrationForm({
         onSuccess: () => this.scene.restart(),
@@ -169,13 +175,17 @@ export default class MissionScene extends Phaser.Scene {
   }
 
   drawCreditFooter(width, height) {
+    const compact = width < 520 || height < 640;
+    const text = compact
+      ? "Copa 5S — Funilaria Goiana • Lucas Oliveira — Team Leader AM."
+      : PUBLIC_CREDIT;
     this.add
-      .text(width / 2, height - 12, PUBLIC_CREDIT, {
+      .text(width / 2, height - (compact ? 7 : 12), text, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: `${width < 620 ? 9 : 10}px`,
+        fontSize: `${compact ? 8 : width < 620 ? 9 : 10}px`,
         color: "#dbe8f6",
         align: "center",
-        lineSpacing: 2,
+        lineSpacing: compact ? 0 : 2,
         wordWrap: { width: Math.min(820, width - 28) }
       })
       .setOrigin(0.5, 1)
@@ -184,10 +194,11 @@ export default class MissionScene extends Phaser.Scene {
 
   drawStats(centerX, y, contentWidth) {
     const isMobile = this.scale.width < 720;
+    const isShortViewport = isMobile && this.scale.height < 680;
     const columns = isMobile ? 2 : 4;
     const gap = isMobile ? 8 : 14;
     const cardWidth = isMobile ? Math.min(174, (contentWidth - gap) / 2) : Math.min(210, (contentWidth - gap * 3) / 4);
-    const cardHeight = isMobile ? 76 : 86;
+    const cardHeight = isMobile ? (isShortViewport ? 68 : 74) : 86;
     const rows = [
       { key: "ideasText", label: "Ideias lançadas", value: this.stats.totalIdeias, icon: "bola" },
       { key: "pointsText", label: "Pontos", value: this.stats.totalPontos, icon: "trofeu" },
@@ -203,45 +214,46 @@ export default class MissionScene extends Phaser.Scene {
       const x = centerX - totalWidth / 2 + cardWidth / 2 + col * (cardWidth + gap);
       const cardY = y + row * (cardHeight + gap);
       this.add.rectangle(x, cardY, cardWidth, cardHeight, COLORS.panel, 0.94).setStrokeStyle(2, COLORS.gold, 0.28);
-      this.drawCardIcon(x - cardWidth / 2 + 28, cardY - 4, item.icon);
+      this.drawCardIcon(x - cardWidth / 2 + (isMobile ? 22 : 28), cardY - 4, item.icon, isMobile);
       const valueText = this.add
-        .text(x + 18, cardY - 12, item.key === "rankText" || item.key === "turnoText" ? item.value : formatNumber(item.value), {
+        .text(x + (isMobile ? 16 : 18), cardY - (isMobile ? 10 : 12), item.key === "rankText" || item.key === "turnoText" ? item.value : formatNumber(item.value), {
           fontFamily: "Arial, Helvetica, sans-serif",
-          fontSize: item.key === "turnoText" ? "16px" : isMobile ? "20px" : "25px",
+          fontSize: item.key === "turnoText" ? (isMobile ? "13px" : "16px") : isMobile ? "18px" : "25px",
           fontStyle: "900",
           color: "#ffffff",
           align: "center"
         })
         .setOrigin(0.5);
       this.add
-        .text(x + 18, cardY + 20, item.label, {
+        .text(x + (isMobile ? 16 : 18), cardY + (isMobile ? 17 : 20), item.label, {
           fontFamily: "Arial, Helvetica, sans-serif",
-          fontSize: "11px",
+          fontSize: isMobile ? "9px" : "11px",
           fontStyle: "800",
           color: "#a9bfd7",
           align: "center",
-          wordWrap: { width: cardWidth - 62 }
+          wordWrap: { width: cardWidth - (isMobile ? 50 : 62) }
         })
         .setOrigin(0.5);
       this.statTexts[item.key] = valueText;
     });
   }
 
-  drawCardIcon(x, y, type) {
+  drawCardIcon(x, y, type, compact = false) {
+    const scale = compact ? 0.82 : 1;
     if (type === "bola") {
-      this.add.circle(x, y, 15, COLORS.white, 0.95).setStrokeStyle(2, COLORS.navy, 0.45);
-      this.add.polygon(x, y, [0, -8, 7, -2, 4, 8, -4, 8, -7, -2], COLORS.navy, 0.85);
+      this.add.circle(x, y, 15 * scale, COLORS.white, 0.95).setStrokeStyle(2, COLORS.navy, 0.45);
+      this.add.polygon(x, y, [0, -8 * scale, 7 * scale, -2 * scale, 4 * scale, 8 * scale, -4 * scale, 8 * scale, -7 * scale, -2 * scale], COLORS.navy, 0.85);
     } else if (type === "trofeu") {
-      this.add.rectangle(x, y, 24, 20, COLORS.gold, 0.9);
-      this.add.rectangle(x, y + 18, 10, 18, COLORS.gold, 0.9);
-      this.add.rectangle(x, y + 28, 32, 7, COLORS.gold, 0.9);
+      this.add.rectangle(x, y, 24 * scale, 20 * scale, COLORS.gold, 0.9);
+      this.add.rectangle(x, y + 18 * scale, 10 * scale, 18 * scale, COLORS.gold, 0.9);
+      this.add.rectangle(x, y + 28 * scale, 32 * scale, 7 * scale, COLORS.gold, 0.9);
     } else if (type === "ranking") {
-      this.add.rectangle(x - 10, y + 8, 8, 18, COLORS.gold, 0.9);
-      this.add.rectangle(x, y + 2, 8, 30, COLORS.orange, 0.95);
-      this.add.rectangle(x + 10, y + 12, 8, 14, COLORS.cyan, 0.9);
+      this.add.rectangle(x - 10 * scale, y + 8 * scale, 8 * scale, 18 * scale, COLORS.gold, 0.9);
+      this.add.rectangle(x, y + 2 * scale, 8 * scale, 30 * scale, COLORS.orange, 0.95);
+      this.add.rectangle(x + 10 * scale, y + 12 * scale, 8 * scale, 14 * scale, COLORS.cyan, 0.9);
     } else {
-      this.add.rectangle(x, y, 30, 30, COLORS.green, 0.86).setStrokeStyle(2, COLORS.white, 0.24);
-      this.add.text(x, y, "5S", { fontSize: "11px", fontStyle: "900", color: "#ffffff" }).setOrigin(0.5);
+      this.add.rectangle(x, y, 30 * scale, 30 * scale, COLORS.green, 0.86).setStrokeStyle(2, COLORS.white, 0.24);
+      this.add.text(x, y, "5S", { fontSize: `${11 * scale}px`, fontStyle: "900", color: "#ffffff" }).setOrigin(0.5);
     }
   }
 
@@ -328,7 +340,7 @@ export default class MissionScene extends Phaser.Scene {
     this.add
       .text(x, y, label, {
         fontFamily: "Arial, Helvetica, sans-serif",
-        fontSize: "17px",
+        fontSize: this.scale.width < 720 ? "15px" : "17px",
         fontStyle: "900",
         color: "#ffffff",
         align: "center"

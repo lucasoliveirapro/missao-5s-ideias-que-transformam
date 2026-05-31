@@ -1,6 +1,5 @@
-Arquivos esperados na raiz publica:
+Arquivo usado na raiz publica:
 
-- favicon.png
-- favicon.ico
+- favicon.svg
 
 Use a versao simplificada da logo, priorizando o "5S" para leitura em abas e atalhos.

@@ -1,6 +1,6 @@
-Coloque aqui os arquivos oficiais da identidade visual:
+Arquivos usados pela identidade visual:
 
-- logo-missao-5s.png
-- logo-missao-5s-icon.png
+- logo-missao-5s.svg
+- logo-missao-5s-icon.svg
 
-O app usa esses caminhos automaticamente. Se os arquivos ainda nao existirem, as cenas exibem um fallback visual em texto.
+O app usa esses caminhos automaticamente. As versões SVG atuais evitam erro 404 e podem ser substituídas pela arte oficial.
