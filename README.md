@@ -328,6 +328,12 @@ O projeto já inclui versões SVG leves para evitar erro 404 quando a logo ofici
 - `public/assets/images/logo-missao-5s-icon.svg`
 - `public/favicon.svg`
 
+Para manter a logo nítida no celular, prefira SVG. Se usar PNG, exporte em alta resolução:
+
+- logo completa: mínimo recomendado de `1440x480`
+- ícone: mínimo recomendado de `512x512`
+- favicon: mínimo recomendado de `128x128`
+
 Se a campanha tiver arquivos oficiais em PNG, substitua os SVGs ou ajuste as referências em `index.html`, `admin.html` e `src/scenes/BootScene.js`.
 
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:

@@ -7,6 +7,7 @@ import {
   getStoredParticipant,
   participantIdeas,
   participantPoints,
+  sharpenSceneText,
   shouldPauseCanvasResize
 } from "../utils.js";
 import { showIdeaForm, showRegistrationForm } from "../ui/forms.js";
@@ -172,6 +173,7 @@ export default class MissionScene extends Phaser.Scene {
     });
 
     this.drawCreditFooter(width, height);
+    sharpenSceneText(this);
   }
 
   drawCreditFooter(width, height) {

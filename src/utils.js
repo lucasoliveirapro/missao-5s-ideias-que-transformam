@@ -200,3 +200,22 @@ export function shouldPauseCanvasResize() {
   const formFieldFocused = Boolean(activeElement?.matches?.("input, textarea, select"));
   return overlayOpen || formFieldFocused;
 }
+
+export function getTextResolution() {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+
+  const ratio = Number(window.devicePixelRatio || 1);
+  const cappedRatio = Math.min(Math.max(ratio, 1), 2);
+  return Number(cappedRatio.toFixed(2));
+}
+
+export function sharpenSceneText(scene) {
+  const resolution = getTextResolution();
+  scene.children.each((child) => {
+    if (child?.type === "Text" && typeof child.setResolution === "function") {
+      child.setResolution(resolution);
+    }
+  });
+}

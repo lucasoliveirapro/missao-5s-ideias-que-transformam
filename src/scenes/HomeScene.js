@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import { audioManager } from "../audio.js";
-import { getStoredParticipant, shouldPauseCanvasResize } from "../utils.js";
+import { getStoredParticipant, sharpenSceneText, shouldPauseCanvasResize } from "../utils.js";
 import { showRegistrationForm } from "../ui/forms.js";
 
 const COLORS = {
@@ -137,6 +137,7 @@ export default class HomeScene extends Phaser.Scene {
     }
 
     this.drawCreditFooter(width, height);
+    sharpenSceneText(this);
   }
 
   drawCreditFooter(width, height) {
