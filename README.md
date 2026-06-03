@@ -338,6 +338,15 @@ Para manter a logo nítida no celular, prefira SVG. Se usar PNG, exporte em alta
 
 O Phaser procura primeiro por `logo-missao-5s.png` e `logo-missao-5s-icon.png`. Se esses arquivos não existirem, usa os SVGs como fallback. Para máxima nitidez, o melhor fluxo é substituir `public/assets/images/logo-missao-5s.svg` pela arte oficial em SVG; se a arte oficial vier em PNG, salve nos nomes opcionais acima em alta resolução.
 
+Para aplicar a logo oficial com validação simples de formato e tamanho, use:
+
+```bash
+npm run logo:apply -- caminho/para/logo.svg
+npm run logo:apply -- caminho/para/logo.png caminho/para/icone.png
+```
+
+O comando aceita SVG ou PNG, copia para `public/assets/images` e avisa se o PNG estiver abaixo da resolução recomendada.
+
 Coloque arquivos MP3 reais em [assets/audio](assets/audio) com estes nomes:
 
 - `gol-de-ideia.mp3`

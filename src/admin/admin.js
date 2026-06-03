@@ -49,6 +49,28 @@ const statusFilter = document.getElementById("admin-status");
 const exportButton = document.getElementById("admin-export");
 const clearButton = document.getElementById("admin-clear");
 
+async function setupAdminLogos() {
+  const logoElements = [...document.querySelectorAll("[data-campaign-logo]")];
+  if (!logoElements.length) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/assets/images/logo-missao-5s.png", {
+      method: "HEAD",
+      cache: "no-store"
+    });
+
+    if (response.ok) {
+      logoElements.forEach((logo) => {
+        logo.src = "/assets/images/logo-missao-5s.png";
+      });
+    }
+  } catch {
+    // Keep the SVG fallback; the admin must not depend on optional PNG assets.
+  }
+}
+
 function setNotice(message, type = "info") {
   notice.hidden = !message;
   notice.textContent = message || "";
@@ -288,6 +310,7 @@ async function handleAdminSession(session) {
 }
 
 async function bootAdmin() {
+  setupAdminLogos();
   setupFilters();
 
   if (!isSupabaseConfigured()) {
