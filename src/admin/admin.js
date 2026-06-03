@@ -198,6 +198,11 @@ function renderIdeas() {
 }
 
 function renderIdeaCard(idea) {
+  const resolved = Boolean(idea.resolvida);
+  const resolutionDetails = idea.descricao_resolucao
+    ? `<div><dt>Como resolveu</dt><dd>${escapeHtml(idea.descricao_resolucao)}</dd></div>`
+    : "";
+
   return `
     <article class="idea-card">
       <div class="idea-card-header">
@@ -220,6 +225,8 @@ function renderIdeaCard(idea) {
         <div><dt>Local</dt><dd>${escapeHtml(idea.descricao_local)}</dd></div>
         <div><dt>Problema</dt><dd>${escapeHtml(idea.problema_observado)}</dd></div>
         <div><dt>Sugestão</dt><dd>${escapeHtml(idea.sugestao_melhoria)}</dd></div>
+        <div><dt>Resolvida</dt><dd>${resolved ? "Sim" : "Não"}</dd></div>
+        ${resolutionDetails}
       </dl>
       <div class="idea-meta">
         <span>${escapeHtml(idea.nome)} — Matrícula ${escapeHtml(idea.matricula)}</span>

@@ -164,113 +164,20 @@ values ('ID_DO_USUARIO_AUTH', 'admin@empresa.com');
 
 ## 11. Row Level Security
 
-Execute depois das tabelas:
+Use a versão endurecida em [`supabase/hardening.sql`](supabase/hardening.sql).
 
-```sql
-alter table public.participants enable row level security;
-alter table public.ideas enable row level security;
-alter table public.app_admins enable row level security;
+Ela substitui as regras permissivas antigas e aplica estes controles:
 
-grant select, insert, update on public.participants to anon, authenticated;
-grant insert on public.ideas to anon;
-grant select, update, delete on public.ideas to authenticated;
-grant select on public.app_admins to authenticated;
+- público lê apenas o ranking necessário;
+- público não faz `insert`, `update` ou `delete` direto em `participants` ou `ideas`;
+- envio de ideia passa pela RPC `submit_idea`;
+- alteração de status passa pela RPC `admin_update_idea_status`;
+- limpeza do evento passa pela RPC `admin_clear_event`;
+- admin é validado pela tabela `app_admins`;
+- views usam `security_invoker`;
+- permissões diretas de `anon` e `authenticated` são revogadas e recriadas de forma mínima.
 
-drop policy if exists "public_read_ranking" on public.participants;
-create policy "public_read_ranking"
-on public.participants
-for select
-to anon, authenticated
-using (true);
-
-drop policy if exists "public_insert_participants" on public.participants;
-create policy "public_insert_participants"
-on public.participants
-for insert
-to anon
-with check (
-  matricula ~ '^[0-9]+$'
-  and turno in ('1º Turno', '2º Turno', '3º Turno')
-  and total_ideias = 0
-  and total_pontos = 0
-);
-
-drop policy if exists "public_update_participants" on public.participants;
-create policy "public_update_participants"
-on public.participants
-for update
-to anon
-using (true)
-with check (
-  matricula ~ '^[0-9]+$'
-  and turno in ('1º Turno', '2º Turno', '3º Turno')
-  and total_ideias >= 0
-  and total_pontos >= 0
-);
-
-drop policy if exists "admin_manage_participants" on public.participants;
-create policy "admin_manage_participants"
-on public.participants
-for all
-to authenticated
-using (true)
-with check (true);
-
-drop policy if exists "public_insert_ideas" on public.ideas;
-create policy "public_insert_ideas"
-on public.ideas
-for insert
-to anon
-with check (
-  status = 'Recebida'
-  and pontos = 10
-  and bonus_aprovada = false
-  and bonus_implantada = false
-  and matricula ~ '^[0-9]+$'
-  and turno in ('1º Turno', '2º Turno', '3º Turno')
-  and senso in (
-    'SEIRI — Utilização',
-    'SEITON — Organização',
-    'SEISOU — Limpeza',
-    'SEIKETSU — Saúde',
-    'SHITSUKE — Disciplina'
-  )
-  and char_length(trim(descricao_local)) >= 15
-  and char_length(trim(problema_observado)) >= 15
-  and char_length(trim(sugestao_melhoria)) >= 15
-);
-
-drop policy if exists "admin_read_ideas" on public.ideas;
-create policy "admin_read_ideas"
-on public.ideas
-for select
-to authenticated
-using (true);
-
-drop policy if exists "admin_update_ideas" on public.ideas;
-create policy "admin_update_ideas"
-on public.ideas
-for update
-to authenticated
-using (true)
-with check (true);
-
-drop policy if exists "admin_delete_ideas" on public.ideas;
-create policy "admin_delete_ideas"
-on public.ideas
-for delete
-to authenticated
-using (true);
-
-drop policy if exists "admin_read_own_record" on public.app_admins;
-create policy "admin_read_own_record"
-on public.app_admins
-for select
-to authenticated
-using (auth.uid() = user_id);
-```
-
-Observação: sem backend próprio, o front-end ainda calcula incremento de pontos. Para segurança corporativa forte, o ideal é mover pontuação e bônus para uma função SQL/RPC `security definer` ou Edge Function validada no servidor.
+Depois de executar o SQL, rode os advisors de segurança do Supabase e confirme que não existe policy pública de `update` em `participants`.
 
 ## 12. Acessar admin
 
@@ -293,7 +200,7 @@ Não existe link para o admin dentro da tela pública.
 7. Preencha título, área, descrição do local, problema, sugestão e senso.
 8. Envie.
 
-Cada ideia enviada soma 10 pontos.
+Cada ideia enviada soma 10 pontos. Se o colaborador marcar que a ideia já foi resolvida e descrever a ação realizada, o envio soma 15 pontos.
 
 ## 14. Testar ranking
 

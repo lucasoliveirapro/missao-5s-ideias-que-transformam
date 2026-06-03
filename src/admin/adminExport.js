@@ -12,6 +12,8 @@ const CSV_HEADERS = [
   "senso",
   "status",
   "pontos",
+  "resolvida",
+  "descricao_resolucao",
   "criado_em"
 ];
 

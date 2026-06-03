@@ -12,6 +12,7 @@ export const IDEA_STATUSES = ["Recebida", "Em análise", "Aprovada", "Implantada
 
 export const POINTS = {
   idea: 10,
+  resolvedIdea: 15,
   approved: 20,
   implemented: 50
 };
@@ -57,7 +58,9 @@ export function validateIdea({
   descricao_local,
   problema_observado,
   sugestao_melhoria,
-  senso
+  senso,
+  resolvida,
+  descricao_resolucao
 }) {
   if (!String(titulo || "").trim()) {
     return { valid: false, message: "Informe o título da ideia." };
@@ -81,6 +84,10 @@ export function validateIdea({
 
   if (!SENSOS.includes(senso)) {
     return { valid: false, message: "Selecione o senso relacionado." };
+  }
+
+  if (resolvida && String(descricao_resolucao || "").trim().length < 15) {
+    return { valid: false, message: "Descreva como você resolveu com pelo menos 15 caracteres." };
   }
 
   return { valid: true };
@@ -187,7 +194,8 @@ export function countBy(items, key) {
 
 export function toCsvValue(value) {
   const text = String(value ?? "");
-  return `"${text.replaceAll('"', '""')}"`;
+  const safeText = /^[=+\-@]/.test(text.trimStart()) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
 }
 
 export function shouldPauseCanvasResize() {

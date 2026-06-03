@@ -169,6 +169,20 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
                 ${SENSOS.map((senso) => `<option value="${escapeHtml(senso)}">${escapeHtml(senso)}</option>`).join("")}
               </select>
             </label>
+            <div class="resolution-block">
+              <label class="switch-field">
+                <input name="resolvida" type="checkbox" />
+                <span class="switch-control" aria-hidden="true"></span>
+                <span>
+                  <strong>Essa ideia já foi resolvida?</strong>
+                  <small>Se você já resolveu essa oportunidade, ative a opção e descreva como foi feito.</small>
+                </span>
+              </label>
+              <label class="resolution-description" hidden>
+                Como você resolveu?
+                <textarea name="descricao_resolucao" rows="3" autocomplete="off" placeholder="Descreva a ação realizada, o local e o resultado obtido."></textarea>
+              </label>
+            </div>
             <p id="idea-error" class="form-error" role="alert"></p>
             <div class="form-actions">
               <button class="ghost-button" type="button" data-action="cancel">Cancelar</button>
@@ -184,12 +198,18 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
   const error = root.querySelector("#idea-error");
   const cancel = root.querySelector('[data-action="cancel"]');
   const submitButton = form.querySelector('[type="submit"]');
+  const resolvedSwitch = form.elements.resolvida;
+  const resolutionDescription = root.querySelector(".resolution-description");
+  const resolutionTextarea = form.elements.descricao_resolucao;
   restoreIdeaDraft(participant, form);
+  updateResolutionField();
 
   form.querySelectorAll("input, textarea, select").forEach((field) => {
     field.addEventListener("input", () => saveIdeaDraft(participant, form));
     field.addEventListener("change", () => saveIdeaDraft(participant, form));
   });
+
+  resolvedSwitch.addEventListener("change", updateResolutionField);
 
   cancel.addEventListener("click", () => {
     saveIdeaDraft(participant, form);
@@ -213,7 +233,9 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
       descricao_local: fieldValue(form, "descricao_local"),
       problema_observado: fieldValue(form, "problema_observado"),
       sugestao_melhoria: fieldValue(form, "sugestao_melhoria"),
-      senso: fieldValue(form, "senso")
+      senso: fieldValue(form, "senso"),
+      resolvida: Boolean(resolvedSwitch.checked),
+      descricao_resolucao: fieldValue(form, "descricao_resolucao")
     };
 
     const validation = validateIdea(formData);
@@ -237,9 +259,20 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
       setBusy(submitButton, false, "Enviar ideia para o campeonato");
     }
   });
+
+  function updateResolutionField() {
+    const resolved = Boolean(resolvedSwitch.checked);
+    resolutionDescription.hidden = !resolved;
+    resolutionTextarea.required = resolved;
+    if (!resolved) {
+      resolutionTextarea.value = "";
+    }
+    saveIdeaDraft(participant, form);
+  }
 }
 
 function showIdeaSuccess(result, { onSuccess } = {}) {
+  const successTitle = result.resolved ? "GOOOOL DE IDEIA RESOLVIDA!" : "GOOOOL DE IDEIA!";
   const top3Message = result.rankPosition && result.rankPosition <= 3
     ? `<p class="success-rank">Você está no Top 3 da Copa 5S.</p>`
     : `<p class="success-rank">Continue participando para subir no ranking.</p>`;
@@ -249,7 +282,7 @@ function showIdeaSuccess(result, { onSuccess } = {}) {
       <div class="modal-backdrop">
         <section class="modal-card success-card" aria-labelledby="success-title">
           <div class="success-badge goal-points" data-goal-points>+0 pontos</div>
-          <h2 id="success-title">GOOOOL DE IDEIA!</h2>
+          <h2 id="success-title">${successTitle}</h2>
           <p>Sua melhoria entrou no campeonato 5S.</p>
           ${top3Message}
           <div class="result-grid">
@@ -275,6 +308,7 @@ function showIdeaSuccess(result, { onSuccess } = {}) {
   if (result.rankPosition && result.rankPosition <= 3) {
     triggerGoalCelebration({
       points: result.pointsAdded,
+      title: successTitle,
       message: "Você está no Top 3!",
       playAudio: () => {
         audioManager.playEffect("goal");
@@ -285,6 +319,7 @@ function showIdeaSuccess(result, { onSuccess } = {}) {
   } else {
     triggerGoalCelebration({
       points: result.pointsAdded,
+      title: successTitle,
       playAudio: () => {
         audioManager.playEffect("goal");
         audioManager.playEffect("crowd");

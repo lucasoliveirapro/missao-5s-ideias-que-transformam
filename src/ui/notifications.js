@@ -202,6 +202,7 @@ export function triggerConfetti({ duration = 2600, count = 72 } = {}) {
 
 export function triggerGoalCelebration({
   points = 10,
+  title = "GOOOOL DE IDEIA!",
   message,
   playAudio
 } = {}) {
@@ -214,7 +215,7 @@ export function triggerGoalCelebration({
   const banner = document.createElement("div");
   banner.className = "goal-celebration";
   banner.innerHTML = `
-    <strong>GOOOOL DE IDEIA!</strong>
+    <strong>${escapeHtml(title)}</strong>
     <span>${escapeHtml(motivationalMessage)}</span>
   `;
   document.body.appendChild(banner);
