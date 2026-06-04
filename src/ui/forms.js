@@ -202,6 +202,7 @@ export function showIdeaForm({ participant, onSuccess, onCancel } = {}) {
   const resolutionDescription = root.querySelector(".resolution-description");
   const resolutionTextarea = form.elements.descricao_resolucao;
   restoreIdeaDraft(participant, form);
+  resolvedSwitch.checked = false;
   updateResolutionField();
 
   form.querySelectorAll("input, textarea, select").forEach((field) => {

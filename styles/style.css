@@ -190,6 +190,10 @@ button {
   gap: 12px;
 }
 
+.resolution-description[hidden] {
+  display: none !important;
+}
+
 .switch-field {
   grid-template-columns: auto 1fr;
   align-items: center;
