@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { operatorSchema } from "@/lib/manusis/validators";
 import { writeAuditLog } from "@/lib/security/audit";
 import { safeErrorMessage } from "@/lib/security/sanitize";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { requireApiRole } from "@/lib/supabase/api-auth";
 
 type RouteContext = {
@@ -18,17 +17,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const json = await request.json();
-    const admin = createAdminSupabaseClient();
+    const db = apiContext.supabase;
 
     if ("photoPath" in json) {
-      const { error } = await admin
+      const { error } = await db
         .from("operators")
         .update({ photo_path: String(json.photoPath || "") || null })
         .eq("id", id);
 
       if (error) throw error;
 
-      await writeAuditLog(admin, {
+      await writeAuditLog(db, {
         actorUserId: apiContext.user.id,
         action: "operator_photo_updated",
         entityType: "operator",
@@ -42,7 +41,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const body = operatorSchema.partial().parse(json);
     const { aliases, ...operatorUpdate } = body;
 
-    const { error } = await admin
+    const { error } = await db
       .from("operators")
       .update({
         name: operatorUpdate.name,
@@ -57,9 +56,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (error) throw error;
 
     if (aliases) {
-      await admin.from("operator_aliases").delete().eq("operator_id", id);
+      await db.from("operator_aliases").delete().eq("operator_id", id);
       if (aliases.length > 0) {
-        const { error: aliasError } = await admin.from("operator_aliases").insert(
+        const { error: aliasError } = await db.from("operator_aliases").insert(
           aliases.map((alias) => ({
             operator_id: id,
             alias
@@ -69,7 +68,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     }
 
-    await writeAuditLog(admin, {
+    await writeAuditLog(db, {
       actorUserId: apiContext.user.id,
       action: "operator_updated",
       entityType: "operator",
@@ -91,12 +90,12 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     const { id } = await context.params;
-    const admin = createAdminSupabaseClient();
-    const { error } = await admin.from("operators").update({ active: false }).eq("id", id);
+    const db = apiContext.supabase;
+    const { error } = await db.from("operators").update({ active: false }).eq("id", id);
 
     if (error) throw error;
 
-    await writeAuditLog(admin, {
+    await writeAuditLog(db, {
       actorUserId: apiContext.user.id,
       action: "operator_deactivated",
       entityType: "operator",

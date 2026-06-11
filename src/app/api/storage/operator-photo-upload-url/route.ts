@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateOperatorPhotoMeta } from "@/lib/security/upload-validation";
 import { safeErrorMessage } from "@/lib/security/sanitize";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { requireApiRole } from "@/lib/supabase/api-auth";
 
 export async function POST(request: Request) {
@@ -21,8 +20,7 @@ export async function POST(request: Request) {
     const meta = validateOperatorPhotoMeta(body);
     const extension = meta.fileName.split(".").pop()?.toLowerCase() ?? "webp";
     const path = `operators/${operatorId}/profile.${extension}`;
-    const admin = createAdminSupabaseClient();
-    const { data, error } = await admin.storage
+    const { data, error } = await context.supabase.storage
       .from("operator-photos")
       .createSignedUploadUrl(path, {
         upsert: true

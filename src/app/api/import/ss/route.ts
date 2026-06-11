@@ -10,7 +10,6 @@ import {
 } from "@/lib/security/upload-validation";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { safeErrorMessage, sanitizeFileName } from "@/lib/security/sanitize";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { requireApiRole } from "@/lib/supabase/api-auth";
 import type { Database } from "@/types/database";
 
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Envie pelo menos um arquivo .xlsx." }, { status: 400 });
     }
 
-    const admin = createAdminSupabaseClient();
+    const db = context.supabase;
     const results = [];
 
     for (const file of files) {
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
       validateXlsxMagicBytes(buffer);
 
       const rows = parseSsXlsx(buffer);
-      const { data: batch, error: batchError } = await admin
+      const { data: batch, error: batchError } = await db
         .from("import_batches")
         .insert({
           file_name: sanitizeFileName(file.name),
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
       const chunks = chunk(processed.cards, 500);
 
       for (const cards of chunks) {
-        const { error } = await admin.from("ss_cards").upsert(cards, {
+        const { error } = await db.from("ss_cards").upsert(cards, {
           onConflict: "ss_number"
         });
 
@@ -81,13 +80,13 @@ export async function POST(request: Request) {
 
       for (const errors of chunk(processed.errors, 500)) {
         if (errors.length === 0) continue;
-        const { error } = await admin.from("import_errors").insert(errors);
+        const { error } = await db.from("import_errors").insert(errors);
         if (error) {
           throw error;
         }
       }
 
-      const { error: updateError } = await admin
+      const { error: updateError } = await db
         .from("import_batches")
         .update({
           total_rows: processed.counters.totalRows,
@@ -110,7 +109,7 @@ export async function POST(request: Request) {
         throw updateError;
       }
 
-      await writeAuditLog(admin, {
+      await writeAuditLog(db, {
         actorUserId: context.user.id,
         action: "ss_import_completed",
         entityType: "import_batch",

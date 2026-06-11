@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { operatorSchema } from "@/lib/manusis/validators";
 import { writeAuditLog } from "@/lib/security/audit";
 import { safeErrorMessage } from "@/lib/security/sanitize";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getApiContext, requireApiRole } from "@/lib/supabase/api-auth";
 
 export async function GET() {
@@ -31,9 +30,9 @@ export async function POST(request: Request) {
 
   try {
     const body = operatorSchema.parse(await request.json());
-    const admin = createAdminSupabaseClient();
+    const db = context.supabase;
 
-    const { data: operator, error } = await admin
+    const { data: operator, error } = await db
       .from("operators")
       .insert({
         name: body.name,
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
 
     const aliases = body.aliases.filter(Boolean);
     if (aliases.length > 0) {
-      const { error: aliasError } = await admin.from("operator_aliases").insert(
+      const { error: aliasError } = await db.from("operator_aliases").insert(
         aliases.map((alias) => ({
           operator_id: operator.id,
           alias
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
       }
     }
 
-    await writeAuditLog(admin, {
+    await writeAuditLog(db, {
       actorUserId: context.user.id,
       action: "operator_created",
       entityType: "operator",
