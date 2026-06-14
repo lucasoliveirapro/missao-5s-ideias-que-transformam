@@ -10,7 +10,7 @@ import {
   sharpenSceneText,
   shouldPauseCanvasResize
 } from "../utils.js";
-import { showIdeaForm, showRegistrationForm } from "../ui/forms.js";
+import { showIdeaForm, showRegistrationForm, showRulesPopup } from "../ui/forms.js";
 import { observeParticipants } from "../ui/ideas.js";
 import { showToast } from "../ui/notifications.js";
 
@@ -66,6 +66,7 @@ export default class MissionScene extends Phaser.Scene {
 
     this.render();
     audioManager.playBackground("background");
+    showRulesPopup({ participant: this.participant });
 
     this.unsubscribeParticipants = observeParticipants(
       (participants) => {
