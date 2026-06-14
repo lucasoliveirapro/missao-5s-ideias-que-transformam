@@ -13,7 +13,6 @@ import { SUPABASE_CONFIG_MESSAGE, registerParticipant, submitIdea } from "./idea
 import { hideOverlay, setBusy, showOverlay, showToast, triggerGoalCelebration } from "./notifications.js";
 
 const IDEA_DRAFT_PREFIX = "missao5s.ideaDraft.";
-const RULES_POPUP_PREFIX = "missao5s.rulesSeen.";
 
 function fieldValue(form, name) {
   return form.elements[name]?.value || "";
@@ -21,26 +20,6 @@ function fieldValue(form, name) {
 
 function ideaDraftKey(participant) {
   return `${IDEA_DRAFT_PREFIX}${normalizeMatricula(participant?.matricula) || "sem-matricula"}`;
-}
-
-function rulesPopupKey(participant) {
-  return `${RULES_POPUP_PREFIX}${normalizeMatricula(participant?.matricula) || "sem-matricula"}`;
-}
-
-function hasSeenRulesPopup(participant) {
-  try {
-    return sessionStorage.getItem(rulesPopupKey(participant)) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function markRulesPopupSeen(participant) {
-  try {
-    sessionStorage.setItem(rulesPopupKey(participant), "true");
-  } catch {
-    // If session storage is unavailable, the popup still closes normally.
-  }
 }
 
 function readIdeaDraft(participant) {
@@ -77,7 +56,7 @@ function restoreIdeaDraft(participant, form) {
 }
 
 export function showRulesPopup({ participant, onClose } = {}) {
-  if (!participant || hasSeenRulesPopup(participant)) {
+  if (!participant) {
     return false;
   }
 
@@ -111,7 +90,6 @@ export function showRulesPopup({ participant, onClose } = {}) {
   );
 
   root.querySelector('[data-action="close-rules"]').addEventListener("click", () => {
-    markRulesPopupSeen(participant);
     hideOverlay();
     if (onClose) onClose();
   });
