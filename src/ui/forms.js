@@ -13,6 +13,7 @@ import { SUPABASE_CONFIG_MESSAGE, registerParticipant, submitIdea } from "./idea
 import { hideOverlay, setBusy, showOverlay, showToast, triggerGoalCelebration } from "./notifications.js";
 
 const IDEA_DRAFT_PREFIX = "missao5s.ideaDraft.";
+const RULES_POPUP_PREFIX = "missao5s.rulesSeen.";
 
 function fieldValue(form, name) {
   return form.elements[name]?.value || "";
@@ -20,6 +21,26 @@ function fieldValue(form, name) {
 
 function ideaDraftKey(participant) {
   return `${IDEA_DRAFT_PREFIX}${normalizeMatricula(participant?.matricula) || "sem-matricula"}`;
+}
+
+function rulesPopupKey(participant) {
+  return `${RULES_POPUP_PREFIX}${normalizeMatricula(participant?.matricula) || "sem-matricula"}`;
+}
+
+function hasSeenRulesPopup(participant) {
+  try {
+    return sessionStorage.getItem(rulesPopupKey(participant)) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function markRulesPopupSeen(participant) {
+  try {
+    sessionStorage.setItem(rulesPopupKey(participant), "true");
+  } catch {
+    // If session storage is unavailable, the popup still closes normally.
+  }
 }
 
 function readIdeaDraft(participant) {
@@ -53,6 +74,49 @@ function restoreIdeaDraft(participant, form) {
       form.elements[field].value = draft[field];
     }
   });
+}
+
+export function showRulesPopup({ participant, onClose } = {}) {
+  if (!participant || hasSeenRulesPopup(participant)) {
+    return false;
+  }
+
+  const root = showOverlay(
+    `
+      <div class="modal-backdrop">
+        <section class="modal-card rules-card" aria-labelledby="rules-title">
+          <div class="modal-heading">
+            <p class="eyebrow">Copa 5S</p>
+            <h2 id="rules-title">Regras da Copa 5S</h2>
+            <p>Antes de entrar em campo, veja como sua participação conta pontos.</p>
+          </div>
+          <div class="rules-content">
+            <ul class="rules-list">
+              <li>Cada ideia registrada conta como um gol para a Funilaria.</li>
+              <li>Ideia enviada vale <strong>+10 pontos</strong>.</li>
+              <li>Ideia já resolvida, com descrição da ação realizada, vale <strong>+15 pontos</strong>.</li>
+              <li>Ideias aprovadas pela comissão somam <strong>+20 pontos</strong>.</li>
+              <li>Ideias implantadas somam <strong>+50 pontos</strong>.</li>
+              <li>O ranking é por matrícula, não por nome.</li>
+              <li>Descreva bem o local, o problema e a melhoria sugerida.</li>
+            </ul>
+            <p class="rules-note">Boa jogada: registre oportunidades reais e ajude o 5S a avançar no dia a dia.</p>
+            <div class="form-actions">
+              <button class="primary-button" type="button" data-action="close-rules">Entendi, entrar em campo</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    `
+  );
+
+  root.querySelector('[data-action="close-rules"]').addEventListener("click", () => {
+    markRulesPopupSeen(participant);
+    hideOverlay();
+    if (onClose) onClose();
+  });
+
+  return true;
 }
 
 export function showRegistrationForm({ onSuccess, onCancel } = {}) {
