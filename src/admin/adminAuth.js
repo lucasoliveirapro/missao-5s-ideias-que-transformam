@@ -20,7 +20,7 @@ export function onAdminAuthChange(callback) {
     return () => {};
   }
 
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
+  const { data } = supabase.auth.onAuthStateChange((event, session) => callback(session, event));
   return () => data.subscription.unsubscribe();
 }
 

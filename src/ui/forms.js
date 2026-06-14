@@ -71,12 +71,10 @@ export function showRulesPopup({ participant, onClose } = {}) {
           </div>
           <div class="rules-content">
             <ul class="rules-list">
-              <li>Cada ideia registrada conta como um gol para a Funilaria.</li>
               <li>Ideia enviada vale <strong>+10 pontos</strong>.</li>
               <li>Ideia já resolvida, com descrição da ação realizada, vale <strong>+15 pontos</strong>.</li>
               <li>Ideias aprovadas pela comissão somam <strong>+20 pontos</strong>.</li>
               <li>Ideias implantadas somam <strong>+50 pontos</strong>.</li>
-              <li>O ranking é por matrícula, não por nome.</li>
               <li>Descreva bem o local, o problema e a melhoria sugerida.</li>
             </ul>
             <p class="rules-note">Boa jogada: registre oportunidades reais e ajude o 5S a avançar no dia a dia.</p>

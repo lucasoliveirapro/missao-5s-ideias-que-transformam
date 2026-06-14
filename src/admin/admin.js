@@ -32,6 +32,7 @@ let state = {
 
 let authCheckId = 0;
 let preservedAuthMessage = "";
+let loginInProgress = false;
 
 const loginPanel = document.getElementById("admin-login-panel");
 const appPanel = document.getElementById("admin-app-panel");
@@ -258,12 +259,14 @@ async function handleLogin(event) {
   button.textContent = "Entrando...";
 
   try {
+    loginInProgress = true;
     await signInAdmin(formData.get("email"), formData.get("password"));
     const session = await getCurrentSession();
     await handleAdminSession(session);
   } catch (error) {
     loginError.textContent = error.message || "Não foi possível entrar.";
   } finally {
+    loginInProgress = false;
     button.disabled = false;
     button.textContent = "Entrar";
   }
@@ -353,7 +356,15 @@ async function bootAdmin() {
     }
   });
 
-  onAdminAuthChange((session) => {
+  onAdminAuthChange((session, event) => {
+    if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
+      return;
+    }
+
+    if (event === "SIGNED_IN" && loginInProgress) {
+      return;
+    }
+
     handleAdminSession(session).catch((error) => {
       clearAdminState();
       setLoggedIn(false);
